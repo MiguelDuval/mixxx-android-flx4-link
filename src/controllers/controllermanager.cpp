@@ -20,13 +20,6 @@
 #include "controllers/midi/portmidienumerator.h"
 #endif
 
-#ifdef __ANDROID__
-// PortMidi is disabled on Android, so the Android USB-MIDI implementation is
-// compiled into this translation unit together with ControllerManager.
-#include "controllers/midi/portmidicontroller.cpp"
-#include "controllers/midi/portmidienumerator.cpp"
-#endif
-
 #ifdef __HSS1394__
 #include "controllers/midi/hss1394enumerator.h"
 #endif
