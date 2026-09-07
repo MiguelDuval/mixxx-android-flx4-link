@@ -12,7 +12,6 @@
 
 #include "controllers/defs_controllers.h"
 #include "controllers/midi/portmidicontroller.h"
-#include "moc_portmidienumerator.cpp"
 #include "util/cmdlineargs.h"
 
 #ifdef __ANDROID__
