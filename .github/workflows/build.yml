@@ -54,6 +54,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$MIXXX_VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DCMAKE_SYSTEM_NAME=Android \
             -DBUILD_TESTING=OFF \
+            -DBUILD_BENCH=OFF \
             ..
 
       - name: Build APK only
