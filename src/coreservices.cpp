@@ -37,10 +37,12 @@
 #include "preferences/dialog/dlgprefmodplug.h"
 #endif
 #include "skin/skincontrols.h"
+#include "skin/skinloader.h"
 #ifdef MIXXX_USE_QML
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 
+#include "qml/qmlapplicationproxy.h"
 #include "qml/qmlconfigproxy.h"
 #include "qml/qmleffectsmanagerproxy.h"
 #include "qml/qmllibraryproxy.h"
@@ -368,8 +370,8 @@ CoreServices::CoreServices(const CmdlineArgs& args, QApplication* pApp)
     // called after the GUI is initialized
     initializeSettings();
     initializeLogging();
-    // Only record stats in developer mode.
-    if (m_cmdlineArgs.getDeveloper()) {
+    // Only record stats in developer mode or when --stats is specified.
+    if (m_cmdlineArgs.getStats()) {
         StatsManager::createInstance();
     }
     mixxx::Translations::initializeTranslations(
@@ -385,7 +387,7 @@ CoreServices::~CoreServices() {
     // Tear down remaining stuff that was initialized in the constructor.
     CLEAR_AND_CHECK_DELETED(m_pKeyboardEventFilter);
 
-    if (m_cmdlineArgs.getDeveloper()) {
+    if (m_cmdlineArgs.getStats()) {
         StatsManager::destroy();
     }
 
@@ -808,9 +810,12 @@ void CoreServices::initializeQMLSingletons() {
     // singletons to that they can be accessed by components instantiated by
     // QML, which would also be suboptimal.
     mixxx::qml::QmlEffectsManagerProxy::registerEffectsManager(getEffectsManager());
+    mixxx::qml::QmlApplicationProxy::registerUserSettings(getSettings());
+    mixxx::qml::QmlApplicationProxy::registerKeyboardEventFilter(getKeyboardEventFilter());
     mixxx::qml::QmlPlayerManagerProxy::registerPlayerManager(getPlayerManager());
     mixxx::qml::QmlConfigProxy::registerUserSettings(getSettings());
     mixxx::qml::QmlLibraryProxy::registerLibrary(getLibrary());
+    mixxx::qml::QmlLibraryProxy::registerKeyboardEventFilter(getKeyboardEventFilter());
     mixxx::qml::QmlSoundManagerProxy::registerManager(getSoundManager());
     mixxx::qml::QmlControllerManagerProxy::registerManager(
             getControllerManager(),
@@ -879,9 +884,10 @@ bool CoreServices::initializeDatabase() {
 std::shared_ptr<QDialog> CoreServices::makeDlgPreferences() const {
     // Note: We return here the base class pointer to make the coreservices.h usable
     // in test classes where header included from dlgpreferences.h are not accessible.
+    auto pSkinLoader = std::make_shared<mixxx::skin::SkinLoader>(getSettings());
     std::shared_ptr<DlgPreferences> pDlgPreferences = std::make_shared<DlgPreferences>(
             getScreensaverManager(),
-            nullptr,
+            pSkinLoader,
             getSoundManager(),
             getControllerManager(),
             getVinylControlManager(),
@@ -903,9 +909,12 @@ void CoreServices::finalize() {
 #ifdef MIXXX_USE_QML
     // Delete all the QML singletons in order to prevent controller leaks
     mixxx::qml::QmlEffectsManagerProxy::registerEffectsManager(nullptr);
+    mixxx::qml::QmlApplicationProxy::registerUserSettings(nullptr);
+    mixxx::qml::QmlApplicationProxy::registerKeyboardEventFilter(nullptr);
     mixxx::qml::QmlPlayerManagerProxy::registerPlayerManager(nullptr);
     mixxx::qml::QmlConfigProxy::registerUserSettings(nullptr);
     mixxx::qml::QmlLibraryProxy::registerLibrary(nullptr);
+    mixxx::qml::QmlLibraryProxy::registerKeyboardEventFilter(nullptr);
     mixxx::qml::QmlSoundManagerProxy::registerManager(nullptr);
     mixxx::qml::QmlControllerManagerProxy::registerManager(nullptr);
 
