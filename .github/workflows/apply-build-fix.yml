@@ -1,0 +1,53 @@
+name: Apply Android MIDI build fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-build-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply permanent source/CMake fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          midienumerator = Path("src/controllers/midi/midienumerator.cpp")
+          text = midienumerator.read_text()
+          old = '''\n#ifdef __ANDROID__\n// Android builds do not enable the desktop PortMidi library. The existing\n// PortMidiController/PortMidiEnumerator classes contain the native Android\n// USB-MIDI implementation, so compile them through this already-built MIDI\n// translation unit.\n#include "controllers/midi/portmidicontroller.cpp"\n#include "controllers/midi/portmidienumerator.cpp"\n#endif\n'''
+          if old not in text:
+              raise SystemExit("Expected temporary Android .cpp include block was not found")
+          midienumerator.write_text(text.replace(old, "\n"))
+
+          cmake = Path("CMakeLists.txt")
+          text = cmake.read_text()
+          old = '''# PortMidi\ndefault_option(PORTMIDI "Enable the PortMidi backend for MIDI controllers" "NOT ANDROID")\nif(PORTMIDI)\n  target_compile_definitions(mixxx-lib PUBLIC __PORTMIDI__)\n  find_package(PortMidi REQUIRED)\n  target_include_directories(mixxx-lib SYSTEM PUBLIC ${PortMidi_INCLUDE_DIRS})\n  target_link_libraries(mixxx-lib PRIVATE ${PortMidi_LIBRARIES})\n  target_sources(\n    mixxx-lib\n    PRIVATE\n      src/controllers/midi/portmidicontroller.cpp\n      src/controllers/midi/portmidienumerator.cpp\n  )\nendif()\n'''
+          new = '''# PortMidi\ndefault_option(PORTMIDI "Enable the PortMidi backend for MIDI controllers" "NOT ANDROID")\nif(PORTMIDI)\n  target_compile_definitions(mixxx-lib PUBLIC __PORTMIDI__)\n  find_package(PortMidi REQUIRED)\n  target_include_directories(mixxx-lib SYSTEM PUBLIC ${PortMidi_INCLUDE_DIRS})\n  target_link_libraries(mixxx-lib PRIVATE ${PortMidi_LIBRARIES})\n  target_sources(\n    mixxx-lib\n    PRIVATE\n      src/controllers/midi/portmidicontroller.cpp\n      src/controllers/midi/portmidienumerator.cpp\n  )\nelseif(ANDROID)\n  # The Android backend reuses the PortMidi controller classes for USB-MIDI,\n  # but does not enable the desktop PortMidi dependency. Keep these as real\n  # compilation units so Qt AUTOMOC generates their moc files normally.\n  target_sources(\n    mixxx-lib\n    PRIVATE\n      src/controllers/midi/portmidicontroller.cpp\n      src/controllers/midi/portmidienumerator.cpp\n  )\nendif()\n'''
+          if old not in text:
+              raise SystemExit("Expected PortMidi CMake block was not found")
+          cmake.write_text(text.replace(old, new))
+
+          workflow = Path(".github/workflows/apply-build-fix.yml")
+          workflow.unlink()
+          PY
+
+      - name: Commit permanent fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/controllers/midi/midienumerator.cpp .github/workflows/apply-build-fix.yml
+          git commit -m "fix(android): compile USB MIDI backends as separate units"
+          git push origin HEAD:main
