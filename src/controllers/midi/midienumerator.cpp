@@ -10,6 +10,7 @@
 
 #include "moc_midienumerator.cpp"
 
+// Android USB-MIDI backends are compiled as separate translation units in CMake.
 
 MidiEnumerator::MidiEnumerator() : ControllerEnumerator() {
 }
