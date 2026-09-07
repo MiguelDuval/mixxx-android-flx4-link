@@ -68,12 +68,11 @@ void MappingInfoEnumerator::loadSupportedMappings() {
     }
 
 #ifdef __ANDROID__
-    // Android assets are accessible through QFile but are not consistently
-    // enumerable through QDirIterator on all Qt/Android combinations. The
-    // FLX4 mapping is shipped in the APK already, so explicitly register it
-    // when it is not returned by directory enumeration.
+    // Android's assets:/ filesystem is not reliably enumerable with QDirIterator
+    // across Qt/Android combinations. The FLX4 mapping is also compiled into the
+    // Qt resource system so it can be opened as a regular QFile path.
     const QString flx4Path =
-            QStringLiteral("assets:/controllers/Pioneer-DDJ-FLX4.midi.xml");
+            QStringLiteral(":/controllers/Pioneer-DDJ-FLX4.midi.xml");
     bool flx4AlreadyListed = false;
     for (const MappingInfo& mapping : std::as_const(m_midiMappings)) {
         if (mapping.getPath() == flx4Path) {
