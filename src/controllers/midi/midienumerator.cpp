@@ -10,6 +10,14 @@
 
 #include "moc_midienumerator.cpp"
 
+#ifdef __ANDROID__
+// PortMidi is intentionally disabled on Android. The Android USB-MIDI
+// implementation is compiled through this existing MIDI target source so no
+// audio or global ControllerManager build plumbing is required.
+#include "controllers/midi/portmidicontroller.cpp"
+#include "controllers/midi/portmidienumerator.cpp"
+#endif
+
 MidiEnumerator::MidiEnumerator() : ControllerEnumerator() {
 }
 
