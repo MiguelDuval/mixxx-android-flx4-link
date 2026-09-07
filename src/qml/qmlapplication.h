@@ -13,7 +13,6 @@
 class ControlProxy;
 class ControlPushButton;
 class GuiTick;
-class QMenuBar;
 class VisualsManager;
 #if defined(Q_OS_ANDROID)
 class QQuickWindow;
@@ -46,6 +45,7 @@ class QmlApplication : public QObject {
 #endif
 
   private:
+    void registerImageProvider();
     void setupSpinnyCoverControls();
     void updateSpinnyCoverControls();
 
@@ -60,11 +60,11 @@ class QmlApplication : public QObject {
     std::unique_ptr<ControlPushButton> m_pSelectBigSpinnyCover;
     std::unique_ptr<ControlPushButton> m_pShowSmallSpinnyCover;
     std::unique_ptr<ControlPushButton> m_pShowBigSpinnyCover;
+    std::unique_ptr<ControlPushButton> m_pWaveformOverviewType;
 
     QString m_mainFilePath;
 
     std::unique_ptr<QQmlApplicationEngine> m_pAppEngine;
-    std::unique_ptr<QMenuBar> m_pMenuBar;
     bool m_loadSucceeded;
     QmlAutoReload m_autoReload;
 
