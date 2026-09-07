@@ -1,5 +1,7 @@
 name: Android APK
 
+# This repository intentionally keeps a single CI workflow: build the Android APK.
+# FLX4 + Ableton Link + Android USB support are built from main.
 on:
   workflow_dispatch:
   push:
