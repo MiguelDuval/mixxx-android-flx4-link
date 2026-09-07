@@ -21,7 +21,6 @@ const QJniObject& getIntent() {
     if (s_intent.isValid()) {
         return s_intent;
     }
-    // QNativeInterface::QAndroidApplication::runOnAndroidMainThread([]() {
     if (!QNativeInterface::QAndroidApplication::isActivityContext()) {
         __android_log_print(ANDROID_LOG_WARN,
                 "mixxx",
@@ -31,10 +30,17 @@ const QJniObject& getIntent() {
     QJniObject context = QNativeInterface::QAndroidApplication::context();
 
     s_usbManager = QJniObject("org/mixxx/UsbPermission");
-    jint FLAG_IMMUTABLE =
-            QJniObject::getStaticField<jint>(
-                    "android/app/PendingIntent",
-                    "FLAG_IMMUTABLE");
+
+    // Android 12+ requires a mutable PendingIntent for this USB permission
+    // broadcast. Older Android versions continue to use the immutable flag.
+    const jint flagImmutable = QJniObject::getStaticField<jint>(
+            "android/app/PendingIntent", "FLAG_IMMUTABLE");
+    const jint flagMutable = QJniObject::getStaticField<jint>(
+            "android/app/PendingIntent", "FLAG_MUTABLE");
+    const jint apiLevel = QJniObject::getStaticField<jint>(
+            "android/os/Build$VERSION", "SDK_INT");
+    const jint pendingIntentFlag = apiLevel >= 31 ? flagMutable : flagImmutable;
+
     QtJniTypes::String ACTION_USB_PERMISSION =
             QJniObject::fromString("org.mixxx.permissions.USB_PERMISSION");
     QtJniTypes::Intent intent = QJniObject("android/content/Intent",
@@ -51,7 +57,7 @@ const QJniObject& getIntent() {
                     context,
                     0,
                     intent,
-                    FLAG_IMMUTABLE);
+                    pendingIntentFlag);
 
     if (!s_intent.isValid()) {
         __android_log_print(ANDROID_LOG_WARN, "mixxx", "pending intent is invalid!");
@@ -67,7 +73,6 @@ const QJniObject& getIntent() {
     if (!success) {
         __android_log_print(ANDROID_LOG_WARN, "mixxx", "failed to registered the receiver!");
     }
-    // });
     return s_intent;
 }
 
@@ -108,7 +113,6 @@ void usbDeviceAccessResult(QJniObject device, bool granted) {
     __android_log_print(ANDROID_LOG_WARN, "mixxx", "received permission result: %d", granted);
     s_grantingResult.push_back(std::make_pair<>(device, granted));
     s_grantingWaitCond.notify_one();
-    // FIXME Handle large list?
 }
 } // namespace android
 } // namespace mixxx
