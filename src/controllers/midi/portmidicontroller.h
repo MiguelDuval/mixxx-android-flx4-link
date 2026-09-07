@@ -12,13 +12,6 @@
 #include "controllers/midi/midicontroller.h"
 
 #ifndef __ANDROID__
-// Note:
-// A standard Midi device runs at 31.25 kbps, with 10 bits / byte
-// 1 byte / 320 microseconds
-// a usual Midi message has 3 byte which results to
-// 1042.6 messages per second
-//
-// MIDI over USB defines an event packet format carrying up to 3 MIDI bytes.
 #define MIXXX_PORTMIDI_BUFFER_LEN 1024
 #define MIXXX_SYSEX_BUFFER_LEN 1024
 #define MIXXX_PORTMIDI_NO_DEVICE_STRING "None"
@@ -26,11 +19,6 @@
 #define MIXXX_SYSEX_BUFFER_LEN 1024
 #endif
 
-/// MIDI controller implementation.
-///
-/// Desktop builds use PortMidi as before. Android uses the class-compliant
-/// USB MIDI Streaming interface directly through libusb so MIDI input/output
-/// works with controllers such as the Pioneer DDJ-FLX4.
 class PortMidiController final : public MidiController {
     Q_OBJECT
   public:
@@ -122,6 +110,10 @@ class PortMidiController final : public MidiController {
     bool sendBytes(const QByteArray& data) override;
 
 #ifdef __ANDROID__
+    bool isPolling() const override {
+        return true;
+    }
+
     bool findEndpoints();
     bool parseUsbMidiPacket(const uint8_t* packet, int packetSize);
     bool sendUsbMidiPacket(uint8_t cin, const uint8_t* data, int length);
