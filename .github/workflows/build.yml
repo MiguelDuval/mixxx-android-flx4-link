@@ -26,6 +26,131 @@ jobs:
         run: |
           source ./tools/android_buildenv.sh setup
 
+      - name: Enable Android USB-MIDI backend
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Expected text not found in {path}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # Android does not define __PORTMIDI__, but the project already has
+          # an Android USB-MIDI implementation in the PortMidi controller class.
+          # Wire that existing enumerator into ControllerManager on Android.
+          replace_once(
+              "src/controllers/controllermanager.cpp",
+              '#ifdef __PORTMIDI__\n#include "controllers/midi/portmidienumerator.h"\n#endif',
+              '#if defined(__PORTMIDI__) || defined(__ANDROID__)\n#include "controllers/midi/portmidienumerator.h"\n#endif',
+          )
+          replace_once(
+              "src/controllers/controllermanager.cpp",
+              '#ifdef __PORTMIDI__\n        m_enumerators.push_back(std::make_unique<PortMidiEnumerator>(m_pConfig));\n#endif',
+              '#if defined(__PORTMIDI__) || defined(__ANDROID__)\n        m_enumerators.push_back(std::make_unique<PortMidiEnumerator>(m_pConfig));\n#endif',
+          )
+
+          # The Android MIDI implementation is compiled through the existing
+          # MIDI enumerator translation unit so we do not alter the global CMake
+          # dependency graph that is already known to produce a working APK.
+          replace_once(
+              "src/controllers/midi/midienumerator.cpp",
+              '#include "moc_midienumerator.cpp"\n',
+              '#include "moc_midienumerator.cpp"\n\n#ifdef __ANDROID__\n#include "controllers/midi/portmidicontroller.cpp"\n#include "controllers/midi/portmidienumerator.cpp"\n#endif\n',
+          )
+
+          # Exclude desktop-only PortMidi API from the Android translation unit.
+          replace_once(
+              "src/controllers/midi/portmidienumerator.cpp",
+              '#include <portmidi.h>\n',
+              '#ifndef __ANDROID__\n#include <portmidi.h>\n#endif\n',
+          )
+          recognize_old = '''bool recognizeDevice(const PmDeviceInfo& deviceInfo, UserSettingsPointer pConfig) {
+    // In developer mode we show the MIDI Through Port, otherwise ignore it
+    // since it routinely causes trouble.
+    return CmdlineArgs::Instance().getDeveloper() ||
+            pConfig->getValue(kMidiThroughCfgKey, false) ||
+            !QLatin1String(deviceInfo.name)
+                     .startsWith(kMidiThroughPortPrefix, Qt::CaseInsensitive);
+}
+'''
+          recognize_new = '''#ifndef __ANDROID__
+bool recognizeDevice(const PmDeviceInfo& deviceInfo, UserSettingsPointer pConfig) {
+    // In developer mode we show the MIDI Through Port, otherwise ignore it
+    // since it routinely causes trouble.
+    return CmdlineArgs::Instance().getDeveloper() ||
+            pConfig->getValue(kMidiThroughCfgKey, false) ||
+            !QLatin1String(deviceInfo.name)
+                     .startsWith(kMidiThroughPortPrefix, Qt::CaseInsensitive);
+}
+#endif
+'''
+          replace_once(
+              "src/controllers/midi/portmidienumerator.cpp",
+              recognize_old,
+              recognize_new,
+          )
+
+          ctor_old = '''PortMidiEnumerator::PortMidiEnumerator(UserSettingsPointer pConfig)
+        : m_pConfig(pConfig) {
+    PmError err = Pm_Initialize();
+    // Based on reading the source, it's not possible for this to fail.
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+}
+
+PortMidiEnumerator::~PortMidiEnumerator() {
+    qDebug() << "Deleting PortMIDI devices...";
+    QListIterator<Controller*> dev_it(m_devices);
+    while (dev_it.hasNext()) {
+        delete dev_it.next();
+    }
+    PmError err = Pm_Terminate();
+    // Based on reading the source, it's not possible for this to fail.
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+}
+'''
+          ctor_new = '''PortMidiEnumerator::PortMidiEnumerator(UserSettingsPointer pConfig)
+        : m_pConfig(pConfig) {
+#ifndef __ANDROID__
+    PmError err = Pm_Initialize();
+    // Based on reading the source, it's not possible for this to fail.
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+#endif
+}
+
+PortMidiEnumerator::~PortMidiEnumerator() {
+    qDebug() << "Deleting PortMIDI devices...";
+    QListIterator<Controller*> dev_it(m_devices);
+    while (dev_it.hasNext()) {
+        delete dev_it.next();
+    }
+#ifndef __ANDROID__
+    PmError err = Pm_Terminate();
+    // Based on reading the source, it's not possible for this to fail.
+    if (err != pmNoError) {
+        qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
+    }
+#endif
+}
+'''
+          replace_once(
+              "src/controllers/midi/portmidienumerator.cpp",
+              ctor_old,
+              ctor_new,
+          )
+
+          print("Android USB-MIDI backend wired into APK build")
+          PY
+
       - name: Create temporary signing key
         shell: bash
         run: |
