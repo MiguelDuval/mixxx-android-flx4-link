@@ -25,9 +25,7 @@ class VinylControlManager;
 
 namespace mixxx {
 class ScreensaverManager;
-namespace skin {
-class SkinLoader;
-} // namespace skin
+namespace skin { class SkinLoader; }
 } // namespace mixxx
 
 class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
@@ -53,8 +51,7 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
             std::shared_ptr<Library> pLibrary);
     virtual ~DlgPreferences();
 
-    void addPageWidget(const PreferencesPage& page,
-            const QString& pageTitle,
+    void addPageWidget(const PreferencesPage& page, const QString& pageTitle,
             const QString& iconFile);
     void removePageWidget(DlgPreferencePage* pWidget);
     void expandTreeItem(QTreeWidgetItem* pItem);
@@ -66,12 +63,15 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
             std::optional<mixxx::preferences::SoundHardwareTab> tab = std::nullopt);
     void slotButtonPressed(QAbstractButton* pButton);
 
-    // Explicitly return to Mixxx. This mirrors Cancel's lifecycle: notify all
-    // preference pages first, then close the non-modal dialog itself.
     void slotBackToMixxx() {
         emit cancelPreferences();
         hide();
         reject();
+    }
+
+    void slotToggleAbletonLink(bool checked) {
+        ControlObject::set(ConfigKey(QStringLiteral("[AbletonLink]"),
+                QStringLiteral("sync_enabled")), checked ? 1.0 : 0.0);
     }
 
   signals:
@@ -89,7 +89,6 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     void changeEvent(QEvent* pEvent) override;
     void moveEvent(QMoveEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
-
 #ifdef Q_OS_ANDROID
     void keyPressEvent(QKeyEvent* pEvent) override {
         if (pEvent && (pEvent->key() == Qt::Key_Back || pEvent->key() == Qt::Key_Escape)) {
