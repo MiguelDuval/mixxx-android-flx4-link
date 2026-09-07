@@ -41,7 +41,7 @@
            <property name="text"><string>TextLabel</string></property>
           </widget>
          </item>
-         <item><widget class="QLabel" name="labelWarning"><property name="text"><string>TextLabel</string></property></widget></item>
+         <item><widget class="QLabel" name="labelWarning"><property name="text"><string>TextLabel</string></widget></item>
         </layout>
        </item>
        <item>
@@ -65,24 +65,11 @@
         </widget>
        </item>
       </layout>
-     </widget>
+    </widget>
     </widget>
    </item>
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>abletonLinkButton</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>DlgPreferencesDlg</receiver>
-   <slot>slotToggleAbletonLink(bool)</slot>
-  </connection>
-  <connection>
-   <sender>backButton</sender>
-   <signal>clicked()</signal>
-   <receiver>DlgPreferencesDlg</receiver>
-   <slot>slotBackToMixxx()</slot>
-  </connection>
- </connections>
+ <connections/>
 </ui>
