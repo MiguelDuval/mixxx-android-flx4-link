@@ -3,11 +3,19 @@
 #include <portmidi.h>
 
 #include <QRegularExpression>
+#ifdef __ANDROID__
+#include <QJniEnvironment>
+#include <QJniObject>
+#endif
 
 #include "controllers/defs_controllers.h"
 #include "controllers/midi/portmidicontroller.h"
 #include "moc_portmidienumerator.cpp"
 #include "util/cmdlineargs.h"
+
+#ifdef __ANDROID__
+#include "controllers/android.h"
+#endif
 
 namespace {
 
@@ -33,8 +41,8 @@ const QRegularExpression kOutputRegex(QStringLiteral("^(.*) out( \\d+)?( .*)?$")
 // This is a broad pattern that matches a text blob followed by a numeral
 // potentially followed by non-numeric text. The non-numeric requirement is
 // meant to avoid corner cases around devices with names like "Hercules RMX
-// 2" where we would potentially confuse the number in the device name as
-// the ordinal index of the device.
+// 2" where we would potentially confuse the number in the device name as the
+// ordinal index of the device.
 const QRegularExpression kDeviceNameRegex(QStringLiteral("^(.*) (\\d+)( [^0-9]+)?$"));
 
 bool namesMatchRegexes(const QRegularExpression& kInputRegex,
@@ -180,6 +188,108 @@ bool shouldLinkInputToOutput(const QString& input_name,
 /// simplify a lot of code, we're going to aggregate these two streams into a
 /// single full-duplex device.
 QList<Controller*> PortMidiEnumerator::queryDevices() {
+#ifdef __ANDROID__
+    qDebug() << "Scanning Android USB MIDI devices:";
+
+    QListIterator<Controller*> dev_it(m_devices);
+    while (dev_it.hasNext()) {
+        delete dev_it.next();
+    }
+    m_devices.clear();
+
+    const QJniObject context = QNativeInterface::QAndroidApplication::context();
+    if (!context.isValid()) {
+        qWarning() << "Android context is invalid while enumerating USB MIDI devices";
+        return m_devices;
+    }
+
+    const QJniObject usbService = QJniObject::getStaticObjectField(
+            "android/content/Context", "USB_SERVICE", "Ljava/lang/String;");
+    const QJniObject usbManager = context.callObjectMethod(
+            "getSystemService",
+            "(Ljava/lang/String;)Ljava/lang/Object;",
+            usbService.object());
+    if (!usbManager.isValid()) {
+        qWarning() << "Android USB manager is invalid";
+        return m_devices;
+    }
+
+    const QJniObject deviceList = usbManager.callObjectMethod(
+            "getDeviceList",
+            "()Ljava/util/HashMap;");
+    if (!deviceList.isValid()) {
+        qWarning() << "Android USB device list is invalid";
+        return m_devices;
+    }
+
+    const QJniObject values = deviceList.callObjectMethod(
+            "values",
+            "()Ljava/util/Collection;");
+    const QJniObject devicesArrayObject = values.callObjectMethod(
+            "toArray",
+            "()[Ljava/lang/Object;");
+    if (!devicesArrayObject.isValid()) {
+        qWarning() << "Android USB device array is invalid";
+        return m_devices;
+    }
+
+    const auto devicesArray = devicesArrayObject.object<jobjectArray>();
+    QJniEnvironment env;
+    const jsize deviceCount = env->GetArrayLength(devicesArray);
+
+    for (jsize deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex) {
+        const jobject deviceObject = env->GetObjectArrayElement(devicesArray, deviceIndex);
+        if (!deviceObject) {
+            continue;
+        }
+
+        const QJniObject device(deviceObject);
+        env->DeleteLocalRef(deviceObject);
+
+        const jint vendorId = device.callMethod<jint>("getVendorId");
+        const jint productId = device.callMethod<jint>("getProductId");
+        const QJniObject productNameObject = device.callObjectMethod(
+                "getProductName",
+                "()Ljava/lang/String;");
+        const QString productName = productNameObject.toString();
+
+        const jint interfaceCount = device.callMethod<jint>("getInterfaceCount");
+        qDebug() << "USB device" << productName
+                 << "VID" << QString::number(vendorId, 16)
+                 << "PID" << QString::number(productId, 16)
+                 << "interfaces" << interfaceCount;
+
+        for (jint interfaceIndex = 0; interfaceIndex < interfaceCount; ++interfaceIndex) {
+            const QJniObject usbInterface = device.callObjectMethod(
+                    "getInterface",
+                    "(I)Landroid/hardware/usb/UsbInterface;",
+                    interfaceIndex);
+            if (!usbInterface.isValid()) {
+                continue;
+            }
+
+            const jint interfaceClass = usbInterface.callMethod<jint>("getInterfaceClass");
+            const jint interfaceSubclass = usbInterface.callMethod<jint>("getInterfaceSubclass");
+
+            qDebug() << "  interface" << interfaceIndex
+                     << "class" << interfaceClass
+                     << "subclass" << interfaceSubclass;
+
+            // USB Audio class (0x01), MIDI Streaming subclass (0x03).
+            // HID interfaces on the same composite controller are deliberately
+            // ignored here; they are enumerated by the HID controller backend.
+            if (interfaceClass != 0x01 || interfaceSubclass != 0x03) {
+                continue;
+            }
+
+            auto* midiDevice = new PortMidiController(device, usbInterface);
+            m_devices.push_back(midiDevice);
+        }
+    }
+
+    qDebug() << "Android USB MIDI devices found:" << m_devices.size();
+    return m_devices;
+#else
     qDebug() << "Scanning PortMIDI devices:";
 
     int iNumDevices = Pm_CountDevices();
@@ -266,4 +376,5 @@ QList<Controller*> PortMidiEnumerator::queryDevices() {
         m_devices.push_back(currentDevice);
     }
     return m_devices;
+#endif
 }
