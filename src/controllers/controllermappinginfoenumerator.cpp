@@ -67,6 +67,31 @@ void MappingInfoEnumerator::loadSupportedMappings() {
         }
     }
 
+#ifdef __ANDROID__
+    // Android assets are accessible through QFile but are not consistently
+    // enumerable through QDirIterator on all Qt/Android combinations. The
+    // FLX4 mapping is shipped in the APK already, so explicitly register it
+    // when it is not returned by directory enumeration.
+    const QString flx4Path =
+            QStringLiteral("assets:/controllers/Pioneer-DDJ-FLX4.midi.xml");
+    bool flx4AlreadyListed = false;
+    for (const MappingInfo& mapping : std::as_const(m_midiMappings)) {
+        if (mapping.getPath() == flx4Path) {
+            flx4AlreadyListed = true;
+            break;
+        }
+    }
+    if (!flx4AlreadyListed) {
+        const QFileInfo flx4File(flx4Path);
+        if (flx4File.exists() && flx4File.isReadable()) {
+            const MappingInfo flx4Mapping(flx4File);
+            if (flx4Mapping.isValid()) {
+                m_midiMappings.append(flx4Mapping);
+            }
+        }
+    }
+#endif
+
     std::sort(m_midiMappings.begin(), m_midiMappings.end(), mappingInfoNameComparator);
     std::sort(m_hidMappings.begin(), m_hidMappings.end(), mappingInfoNameComparator);
     std::sort(m_bulkMappings.begin(), m_bulkMappings.end(), mappingInfoNameComparator);
