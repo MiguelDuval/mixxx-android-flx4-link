@@ -75,8 +75,7 @@ PortMidiController::PortMidiController(QJniObject usbDevice, QJniObject usbInter
           m_productId(static_cast<uint16_t>(m_usbDevice.callMethod<jint>("getProductId"))) {
     m_vendorString = m_usbDevice.callMethod<jstring>("getManufacturerName").toString();
     m_productString = m_usbDevice.callMethod<jstring>("getProductName").toString();
-    m_serialNumber = m_usbDevice.callMethod<jstring>("getSerialNumber").toString();
-    if (m_serialNumber.isEmpty()) m_serialNumber = QStringLiteral("N/A");
+    m_serialNumber = QStringLiteral("N/A");
     setInputDevice(true);
     setOutputDevice(true);
 }
@@ -130,33 +129,30 @@ int PortMidiController::open(const QString& resourcePath) {
     auto usbManager = context.callObjectMethod(
             "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", usbService.object());
     if (!usbManager.isValid()) return -1;
-
-    if (!usbManager.callMethod<jboolean>("hasPermission",
-                "(Landroid/hardware/usb/UsbDevice;)Z", m_usbDevice)) {
+    if (!usbManager.callMethod<jboolean>("hasPermission", "(Landroid/hardware/usb/UsbDevice;)Z", m_usbDevice)) {
         const auto& pendingIntent = mixxx::android::getIntent();
         usbManager.callMethod<void>("requestPermission",
                 "(Landroid/hardware/usb/UsbDevice;Landroid/app/PendingIntent;)V",
                 m_usbDevice, pendingIntent);
         if (!mixxx::android::waitForPermission(m_usbDevice)) return -1;
     }
+    // The serial number may only be queried after USB permission is granted.
+    const auto serial = m_usbDevice.callMethod<jstring>("getSerialNumber").toString();
+    if (!serial.isEmpty()) m_serialNumber = serial;
 
     m_usbDeviceConnection = usbManager.callObjectMethod(
-            "openDevice",
-            "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/UsbDeviceConnection;",
-            m_usbDevice);
+            "openDevice", "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/UsbDeviceConnection;", m_usbDevice);
     if (!m_usbDeviceConnection.isValid()) return -1;
     if (!findEndpoints()) {
         m_usbDeviceConnection = QJniObject();
         return -1;
     }
-
     const auto fileDescriptor = static_cast<intptr_t>(
             m_usbDeviceConnection.callMethod<jint>("getFileDescriptor"));
     if (fileDescriptor < 0) {
         m_usbDeviceConnection = QJniObject();
         return -1;
     }
-
     const int initResult = libusb_init(&m_libusbContext);
     if (initResult != LIBUSB_SUCCESS || !m_libusbContext) {
         qCWarning(m_logBase) << "libusb_init failed:" << initResult;
@@ -165,8 +161,7 @@ int PortMidiController::open(const QString& resourcePath) {
         return -1;
     }
     libusb_set_option(m_libusbContext, LIBUSB_OPTION_NO_DEVICE_DISCOVERY);
-    const int wrapResult = libusb_wrap_sys_device(
-            m_libusbContext, fileDescriptor, &m_usbHandle);
+    const int wrapResult = libusb_wrap_sys_device(m_libusbContext, fileDescriptor, &m_usbHandle);
     if (wrapResult != LIBUSB_SUCCESS || !m_usbHandle) {
         qCWarning(m_logBase) << "libusb_wrap_sys_device failed:" << wrapResult;
         libusb_exit(m_libusbContext);
@@ -175,7 +170,6 @@ int PortMidiController::open(const QString& resourcePath) {
         m_usbDeviceConnection = QJniObject();
         return -1;
     }
-
     const int claimResult = libusb_claim_interface(m_usbHandle, m_interfaceNumber);
     if (claimResult != LIBUSB_SUCCESS) {
         qCWarning(m_logBase) << "Unable to claim USB MIDI interface" << m_interfaceNumber
@@ -187,7 +181,6 @@ int PortMidiController::open(const QString& resourcePath) {
         m_usbDeviceConnection = QJniObject();
         return -1;
     }
-
     m_timestamp.start();
     startEngine();
     if (!applyMapping(resourcePath)) {
@@ -222,6 +215,9 @@ bool PortMidiController::parseUsbMidiPacket(const uint8_t* packet, int packetSiz
     if (length <= 0) return false;
     const auto timestamp = mixxx::Duration::fromMillis(m_timestamp.elapsed());
     const uint8_t* data = packet + 1;
+    if (cin == 0x4 || cin == 0x5 || cin == 0x6 || cin == 0x7) {
+        return false; // SysEx handled through raw receive path in a future extension.
+    }
     if (length >= 3) receivedShortMessage(data[0], data[1], data[2], timestamp);
     else if (length == 2) receivedShortMessage(data[0], data[1], 0, timestamp);
     else receivedShortMessage(data[0], 0, 0, timestamp);
@@ -233,7 +229,7 @@ bool PortMidiController::poll() {
     uint8_t buffer[64];
     int actualLength = 0;
     const int result = libusb_bulk_transfer(
-            m_usbHandle, m_inputEndpoint, buffer, sizeof(buffer), &actualLength, 0);
+            m_usbHandle, m_inputEndpoint, buffer, sizeof(buffer), &actualLength, 1);
     if (result == LIBUSB_ERROR_TIMEOUT || actualLength <= 0) return false;
     if (result != LIBUSB_SUCCESS) {
         qCWarning(m_logInput) << "USB MIDI read failed:" << result;
@@ -290,9 +286,7 @@ PortMidiController::PortMidiController(const PmDeviceInfo* inputDeviceInfo,
         int inputDeviceIndex,
         int outputDeviceIndex)
         : MidiController((inputDeviceInfo || outputDeviceInfo)
-                          ? QString::fromLocal8Bit(inputDeviceInfo
-                                            ? inputDeviceInfo->name
-                                            : outputDeviceInfo->name)
+                          ? QString::fromLocal8Bit(inputDeviceInfo ? inputDeviceInfo->name : outputDeviceInfo->name)
                           : kUnknownControllerName),
           m_cReceiveMsg_index(0),
           m_bInSysex(false) {
@@ -307,9 +301,7 @@ PortMidiController::PortMidiController(const PmDeviceInfo* inputDeviceInfo,
     }
 }
 
-PortMidiController::~PortMidiController() {
-    if (isOpen()) close();
-}
+PortMidiController::~PortMidiController() { if (isOpen()) close(); }
 
 int PortMidiController::open(const QString& resourcePath) {
     if (isOpen()) return -1;
@@ -317,12 +309,10 @@ int PortMidiController::open(const QString& resourcePath) {
     m_bInSysex = false;
     m_cReceiveMsg_index = 0;
     if (m_pInputDevice && isInputDevice()) {
-        PmError err = m_pInputDevice->openInput(MIXXX_PORTMIDI_BUFFER_LEN);
-        if (err != pmNoError) return -2;
+        if (m_pInputDevice->openInput(MIXXX_PORTMIDI_BUFFER_LEN) != pmNoError) return -2;
     }
     if (m_pOutputDevice && isOutputDevice()) {
-        PmError err = m_pOutputDevice->openOutput();
-        if (err != pmNoError) return -2;
+        if (m_pOutputDevice->openOutput() != pmNoError) return -2;
     }
     startEngine();
     applyMapping(resourcePath);
@@ -358,14 +348,8 @@ bool PortMidiController::poll() {
         }
 reprocessMessage:
         if (!m_bInSysex) {
-            if (status == 0xF0) {
-                m_bInSysex = true;
-                status = 0;
-            } else {
-                receivedShortMessage(status,
-                        Pm_MessageData1(m_midiBuffer[i].message),
-                        Pm_MessageData2(m_midiBuffer[i].message), timestamp);
-            }
+            if (status == 0xF0) { m_bInSysex = true; status = 0; }
+            else receivedShortMessage(status, Pm_MessageData1(m_midiBuffer[i].message), Pm_MessageData2(m_midiBuffer[i].message), timestamp);
         }
         if (m_bInSysex) {
             if (status > 0x7F && status < 0xF7) {
@@ -374,11 +358,9 @@ reprocessMessage:
                 goto reprocessMessage;
             }
             uint8_t data = 0;
-            for (int shift = 0; shift < 32 &&
-                    data != MidiUtils::opCodeValue(MidiOpCode::EndOfExclusive); shift += 8) {
+            for (int shift = 0; shift < 32 && data != MidiUtils::opCodeValue(MidiOpCode::EndOfExclusive); shift += 8) {
                 data = (m_midiBuffer[i].message >> shift) & 0xFF;
-                if (m_cReceiveMsg_index < MIXXX_SYSEX_BUFFER_LEN)
-                    m_cReceiveMsg[m_cReceiveMsg_index++] = data;
+                if (m_cReceiveMsg_index < MIXXX_SYSEX_BUFFER_LEN) m_cReceiveMsg[m_cReceiveMsg_index++] = data;
             }
             if (data == MidiUtils::opCodeValue(MidiOpCode::EndOfExclusive)) {
                 m_bInSysex = false;
@@ -391,12 +373,10 @@ reprocessMessage:
     return numEvents > 0;
 }
 
-void PortMidiController::sendShortMsg(unsigned char status, unsigned char byte1,
-        unsigned char byte2) {
+void PortMidiController::sendShortMsg(unsigned char status, unsigned char byte1, unsigned char byte2) {
     if (m_pOutputDevice.isNull() || !m_pOutputDevice->isOpen()) return;
-    const unsigned int word = (((unsigned int)byte2) << 16) |
-                              (((unsigned int)byte1) << 8) | status;
-    if (m_pOutputDevice->writeShort(word) != pmNoError) return;
+    const unsigned int word = (((unsigned int)byte2) << 16) | (((unsigned int)byte1) << 8) | status;
+    m_pOutputDevice->writeShort(word);
 }
 
 bool PortMidiController::sendBytes(const QByteArray& data) {
