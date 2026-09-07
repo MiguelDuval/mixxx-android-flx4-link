@@ -12,13 +12,6 @@
 #include "controllers/midi/midicontroller.h"
 
 #ifndef __ANDROID__
-// Note:
-// A standard Midi device runs at 31.25 kbps, with 10 bits / byte
-// 1 byte / 320 microseconds
-// a usual Midi message has 3 byte which results to
-// 1042.6 messages per second
-//
-// MIDI over USB defines an event packet format carrying up to 3 MIDI bytes.
 #define MIXXX_PORTMIDI_BUFFER_LEN 1024
 #define MIXXX_SYSEX_BUFFER_LEN 1024
 #define MIXXX_PORTMIDI_NO_DEVICE_STRING "None"
@@ -27,10 +20,8 @@
 #endif
 
 /// MIDI controller implementation.
-///
-/// Desktop builds use PortMidi as before. Android uses the class-compliant
-/// USB MIDI Streaming interface directly through libusb so MIDI input/output
-/// works with controllers such as the Pioneer DDJ-FLX4.
+/// Desktop builds use PortMidi. Android uses the class-compliant USB MIDI
+/// Streaming interface directly through libusb.
 class PortMidiController final : public MidiController {
     Q_OBJECT
   public:
@@ -45,10 +36,10 @@ class PortMidiController final : public MidiController {
     ~PortMidiController() override;
 
     PhysicalTransportProtocol getPhysicalTransportProtocol() const override {
-#ifndef __ANDROID__
-        return PhysicalTransportProtocol::UNKNOWN;
-#else
+#ifdef __ANDROID__
         return PhysicalTransportProtocol::USB;
+#else
+        return PhysicalTransportProtocol::UNKNOWN;
 #endif
     }
 
@@ -114,7 +105,7 @@ class PortMidiController final : public MidiController {
 
   protected:
     void sendShortMsg(unsigned char status, unsigned char byte1,
-                      unsigned char byte2) override;
+            unsigned char byte2) override;
 
   private:
     int open(const QString& resourcePath) override;
@@ -129,6 +120,7 @@ class PortMidiController final : public MidiController {
     QJniObject m_usbDevice;
     QJniObject m_usbInterface;
     QJniObject m_usbDeviceConnection;
+    libusb_context* m_libusbContext{nullptr};
     libusb_device_handle* m_usbHandle{nullptr};
     int m_interfaceNumber{-1};
     uint8_t m_inputEndpoint{0};
@@ -143,7 +135,6 @@ class PortMidiController final : public MidiController {
     bool isPolling() const override {
         return true;
     }
-
     QScopedPointer<class PortMidiDevice> m_pInputDevice;
     QScopedPointer<class PortMidiDevice> m_pOutputDevice;
     PmEvent m_midiBuffer[MIXXX_PORTMIDI_BUFFER_LEN];
