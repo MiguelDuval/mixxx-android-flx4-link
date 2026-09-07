@@ -71,7 +71,8 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: mixxx-android-flx4-link-apk
+          name: android-build-release-signed.apk
           path: build-android/android-build/build/outputs/apk/release/android-build-release-signed.apk
+          archive: false
           if-no-files-found: error
           retention-days: 30
