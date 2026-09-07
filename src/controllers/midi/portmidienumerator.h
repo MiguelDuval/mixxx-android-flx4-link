@@ -1,11 +1,10 @@
 #pragma once
 
-#include "controllers/midi/midienumerator.h"
-#include "preferences/usersettings.h"
+#include "controllers/controllerenumerator.h"
 
-/// This class handles discovery and enumeration of DJ controllers that appear under the PortMIDI cross-platform API.
-class PortMidiEnumerator : public MidiEnumerator {
-    Q_OBJECT
+#include "util/timer.h"
+
+class PortMidiEnumerator final : public ControllerEnumerator {
   public:
     PortMidiEnumerator(UserSettingsPointer pConfig);
     ~PortMidiEnumerator() override;
@@ -13,10 +12,6 @@ class PortMidiEnumerator : public MidiEnumerator {
     QList<Controller*> queryDevices() override;
 
   private:
-    QList<Controller*> m_devices;
     UserSettingsPointer m_pConfig;
+    QList<Controller*> m_devices;
 };
-
-// For testing.
-bool shouldLinkInputToOutput(const QString& input_name,
-        const QString& output_name);
