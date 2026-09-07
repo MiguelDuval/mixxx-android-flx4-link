@@ -60,7 +60,18 @@ jobs:
       - name: Build APK only
         shell: bash
         run: |
-          cmake --build build-android --target apk --parallel 2
+          set -o pipefail
+          cmake --build build-android --target apk --parallel 2 --verbose 2>&1 | tee "$RUNNER_TEMP/android-apk-build.log"
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-apk-build-log
+          path: ${{ runner.temp }}/android-apk-build.log
+          archive: true
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Verify APK
         shell: bash
