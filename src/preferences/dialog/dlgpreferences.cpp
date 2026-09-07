@@ -69,6 +69,15 @@ DlgPreferences::DlgPreferences(
     fixSliderStyle();
     contentsTreeWidget->setHeaderHidden(true);
 
+    connect(backButton,
+            &QPushButton::clicked,
+            this,
+            &DlgPreferences::slotBackToMixxx);
+    connect(abletonLinkButton,
+            &QPushButton::toggled,
+            this,
+            &DlgPreferences::slotToggleAbletonLink);
+
     // Add '&' to default button labels to always have Alt shortcuts, indpependent
     // of operating system.
     //: Preferences standard buttons: consider the other buttons to choose a unique Alt hotkey (&)
