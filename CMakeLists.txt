@@ -3841,6 +3841,16 @@ if(PORTMIDI)
       src/controllers/midi/portmidicontroller.cpp
       src/controllers/midi/portmidienumerator.cpp
   )
+elseif(ANDROID)
+  # The Android backend reuses the PortMidi controller classes for USB-MIDI,
+  # but does not enable the desktop PortMidi dependency. Keep these as real
+  # compilation units so Qt AUTOMOC generates their moc files normally.
+  target_sources(
+    mixxx-lib
+    PRIVATE
+      src/controllers/midi/portmidicontroller.cpp
+      src/controllers/midi/portmidienumerator.cpp
+  )
 endif()
 
 # Protobuf
