@@ -16,7 +16,7 @@
 #include "util/thread_affinity.h"
 #include "util/time.h"
 
-#ifdef __PORTMIDI__
+#if defined(__PORTMIDI__) || defined(__ANDROID__)
 #include "controllers/midi/portmidienumerator.h"
 #endif
 
@@ -170,7 +170,7 @@ void ControllerManager::slotInitialize() {
     // construct since they interact with host MIDI APIs.
     {
         auto locker = lockMutex(&m_mutex);
-#ifdef __PORTMIDI__
+#if defined(__PORTMIDI__) || defined(__ANDROID__)
         m_enumerators.push_back(std::make_unique<PortMidiEnumerator>(m_pConfig));
 #endif
 #ifdef __HSS1394__

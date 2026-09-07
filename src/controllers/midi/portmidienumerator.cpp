@@ -1,6 +1,8 @@
 #include "controllers/midi/portmidienumerator.h"
 
+#ifndef __ANDROID__
 #include <portmidi.h>
+#endif
 
 #include <QRegularExpression>
 #ifdef __ANDROID__
@@ -19,6 +21,7 @@
 
 namespace {
 
+#ifndef __ANDROID__
 bool recognizeDevice(const PmDeviceInfo& deviceInfo, UserSettingsPointer pConfig) {
     // In developer mode we show the MIDI Through Port, otherwise ignore it
     // since it routinely causes trouble.
@@ -27,6 +30,7 @@ bool recognizeDevice(const PmDeviceInfo& deviceInfo, UserSettingsPointer pConfig
             !QLatin1String(deviceInfo.name)
                      .startsWith(kMidiThroughPortPrefix, Qt::CaseInsensitive);
 }
+#endif
 
 // Some platforms format MIDI device names as "deviceName MIDI ###" where
 // ### is the instance # of the device. Therefore we want to link two
@@ -109,11 +113,13 @@ bool namesMatchAllowableEdgeCases(const QString& input_name,
 
 PortMidiEnumerator::PortMidiEnumerator(UserSettingsPointer pConfig)
         : m_pConfig(pConfig) {
+#ifndef __ANDROID__
     PmError err = Pm_Initialize();
     // Based on reading the source, it's not possible for this to fail.
     if (err != pmNoError) {
         qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
     }
+#endif
 }
 
 PortMidiEnumerator::~PortMidiEnumerator() {
@@ -122,11 +128,13 @@ PortMidiEnumerator::~PortMidiEnumerator() {
     while (dev_it.hasNext()) {
         delete dev_it.next();
     }
+#ifndef __ANDROID__
     PmError err = Pm_Terminate();
     // Based on reading the source, it's not possible for this to fail.
     if (err != pmNoError) {
         qWarning() << "PortMidi error:" << Pm_GetErrorText(err);
     }
+#endif
 }
 
 bool shouldLinkInputToOutput(const QString& input_name,
