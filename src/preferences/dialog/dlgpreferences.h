@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QDir>
 #include <QEvent>
+#include <QKeyEvent>
 #include <QRect>
 #include <QStringList>
 #include <memory>
@@ -33,13 +34,9 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     Q_OBJECT
   public:
     struct PreferencesPage {
-        PreferencesPage() {
-        }
+        PreferencesPage() {}
         PreferencesPage(DlgPreferencePage* pDlg, QTreeWidgetItem* pTreeItem)
-                : pDlg(pDlg),
-                  pTreeItem(pTreeItem) {
-        }
-
+                : pDlg(pDlg), pTreeItem(pTreeItem) {}
         DlgPreferencePage* pDlg;
         QTreeWidgetItem* pTreeItem;
         QString iconFile;
@@ -66,20 +63,23 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
   public slots:
     void changePage(QTreeWidgetItem* pCurrent, QTreeWidgetItem* pPrevious);
     void showSoundHardwarePage(
-            std::optional<mixxx::preferences::SoundHardwareTab> tab =
-                    std::nullopt);
+            std::optional<mixxx::preferences::SoundHardwareTab> tab = std::nullopt);
     void slotButtonPressed(QAbstractButton* pButton);
+
+    // Explicitly return to Mixxx. This mirrors Cancel's lifecycle: notify all
+    // preference pages first, then close the non-modal dialog itself.
+    void slotBackToMixxx() {
+        emit cancelPreferences();
+        hide();
+        reject();
+    }
+
   signals:
     void closeDlg();
     void showDlg();
-
-    // Emitted just after the user clicks Apply or OK.
     void applyPreferences();
-    // Emitted if the user clicks Cancel
     void cancelPreferences();
-    // Emitted if the user clicks Reset to Defaults.
     void resetToDefaults();
-
     void reloadUserInterface();
     void tooltipModeChanged(mixxx::preferences::Tooltips tooltipMode);
     void menuBarAutoHideChanged();
@@ -90,6 +90,17 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     void moveEvent(QMoveEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
 
+#ifdef Q_OS_ANDROID
+    void keyPressEvent(QKeyEvent* pEvent) override {
+        if (pEvent && (pEvent->key() == Qt::Key_Back || pEvent->key() == Qt::Key_Escape)) {
+            slotBackToMixxx();
+            pEvent->accept();
+            return;
+        }
+        QDialog::keyPressEvent(pEvent);
+    }
+#endif
+
   private:
     DlgPreferencePage* currentPage();
     void fixSliderStyle();
@@ -97,18 +108,14 @@ class DlgPreferences : public QDialog, public Ui::DlgPreferencesDlg {
     void onShow();
     void onHide();
     QRect getDefaultGeometry();
-
     QAbstractButton* m_pApplyButton;
     QAbstractButton* m_pAcceptButton;
-
     QStringList m_geometry;
     UserSettingsPointer m_pConfig;
     std::unique_ptr<DlgPrefSound> m_pSoundDlg;
     PreferencesPage m_soundPage;
     DlgPrefControllers* m_pControllersDlg;
-
     QSize m_pageSizeHint;
-
     QDir m_iconsPath;
     bool pendingConfigValidOnAllPages();
 };
