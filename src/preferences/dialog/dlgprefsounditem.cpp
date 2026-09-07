@@ -9,7 +9,7 @@
 #include "soundio/soundmanagerutil.h"
 #include "util/assert.h"
 
-/// Constructs a new preferences sound item, representing an AudioPath and SoundDevice
+/// Constructs a new sound preferences item, representing an AudioPath and SoundDevice
 /// with a label and two combo boxes.
 /// @param type The AudioPathType of the path to be represented
 /// @param devices The list of devices for the user to choose from (either a collection
@@ -65,6 +65,25 @@ void DlgPrefSoundItem::refreshDevices(const QList<SoundDevicePointer>& devices) 
         deviceComboBox->addItem(pDevice->getDisplayName(), QVariant::fromValue(pDevice->getDeviceId()));
     }
     int newIndex = deviceComboBox->findData(QVariant::fromValue(oldDev));
+
+#ifdef Q_OS_ANDROID
+    // On Android the DDJ-FLX4 is commonly exposed as a USB Audio device. When
+    // a sound path has not been configured yet, prefer the FLX4 automatically
+    // so the user does not have to understand Mixxx's low-level device routing.
+    if (newIndex == -1 && !m_isInput) {
+        for (const auto& pDevice : std::as_const(m_devices)) {
+            if (!hasSufficientChannels(*pDevice)) {
+                continue;
+            }
+            if (pDevice->getDisplayName().contains(QStringLiteral("FLX4"), Qt::CaseInsensitive)) {
+                newIndex = deviceComboBox->findData(
+                        QVariant::fromValue(pDevice->getDeviceId()));
+                break;
+            }
+        }
+    }
+#endif
+
     if (newIndex != -1) {
         deviceComboBox->setCurrentIndex(newIndex);
     }
@@ -156,7 +175,23 @@ void DlgPrefSoundItem::deviceChanged(int index) {
                         QPoint(i, channelsForType));
             }
         }
-        channelComboBox->setCurrentIndex(-1); // clear selection
+
+        int preferredChannelIndex = -1;
+#ifdef Q_OS_ANDROID
+        // The FLX4 exposes the main output and headphones as separate stereo
+        // channel pairs when the Android audio stack reports four outputs.
+        // Mixxx inserts the channel pairs in order: 1/2, then 3/4.
+        if (!m_isInput && selectedDevice &&
+                selectedDevice->getDisplayName().contains(
+                        QStringLiteral("FLX4"), Qt::CaseInsensitive)) {
+            if (m_type == AudioPathType::Headphones && numChannels >= 4) {
+                preferredChannelIndex = 1; // channels 3/4 -> PHONES
+            } else if (m_type == AudioPathType::Main) {
+                preferredChannelIndex = 0; // channels 1/2 -> MASTER
+            }
+        }
+#endif
+        channelComboBox->setCurrentIndex(preferredChannelIndex);
         channelComboBox->blockSignals(false);
     }
 emitAndReturn:
@@ -226,11 +261,10 @@ void DlgPrefSoundItem::writePath(SoundManagerConfig* config) const {
         return;
     } // otherwise, this will have a valid audiopath
 
-    // Because QComboBox supports QPoint natively (via QVariant) we use a QPoint
-    // to store the channel info. x is the channel base and y is the channel
-    // count.
+    // Because QComboBox supports QPoint natively (via QVariant) we use a QPoint to
+    // store the channel info. x is the channel base and y is the channel count.
     QPoint channelData = channelComboBox->itemData(
-        channelComboBox->currentIndex()).toPoint();
+            channelComboBox->currentIndex()).toPoint();
     int channelBase = channelData.x();
     const auto channelCount = mixxx::audio::ChannelCount(channelData.y());
 
@@ -286,7 +320,7 @@ SoundDevicePointer DlgPrefSoundItem::getDevice() const {
 
 /// Selects a device in the device combo box given a SoundDevice' internal name,
 /// or selects "None" if the device is nullptr or isn't found.
-/// Called only internally via DlPrefSound::loadPaths()
+/// Called only internally via DlgPrefSoundItem::loadPath()
 void DlgPrefSoundItem::setDevice(const SoundDeviceId& device) {
     int index = deviceComboBox->findData(QVariant::fromValue(device));
     if (index == -1) {
@@ -307,9 +341,8 @@ void DlgPrefSoundItem::setDevice(const SoundDeviceId& device) {
 /// or selects the first channel if the given channel isn't found.
 void DlgPrefSoundItem::setChannel(unsigned int channelBase,
                                   unsigned int channels) {
-    // Because QComboBox supports QPoint natively (via QVariant) we use a QPoint
-    // to store the channel info. x is the channel base and y is the channel
-    // count.
+    // Because QComboBox supports QPoint natively (via QVariant) we use a QPoint to
+    // store the channel info. x is the channel base and y is the channel count.
     int index = channelComboBox->findData(QPoint(channelBase, channels));
     if (index == -1) {
         // channel(s) not found
