@@ -21,7 +21,7 @@ ColumnLayout {
         id: keyCO
 
         group: root.group
-        key: "visual_key"
+        key: "key"
     }
     Mixxx.ControlProxy {
         id: bpmCO
