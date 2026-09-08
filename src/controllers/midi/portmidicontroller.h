@@ -5,8 +5,8 @@
 #include <QScopedPointer>
 #else
 #include <QElapsedTimer>
+#include <QJniArray>
 #include <QJniObject>
-#include <libusb.h>
 #endif
 
 #include "controllers/midi/midicontroller.h"
@@ -121,11 +121,11 @@ class PortMidiController final : public MidiController {
     QJniObject m_usbDevice;
     QJniObject m_usbInterface;
     QJniObject m_usbDeviceConnection;
-    libusb_context* m_libusbContext{nullptr};
-    libusb_device_handle* m_usbHandle{nullptr};
+    QJniObject m_inputEndpoint;
+    QJniObject m_outputEndpoint;
     int m_interfaceNumber{-1};
-    uint8_t m_inputEndpoint{0};
-    uint8_t m_outputEndpoint{0};
+    uint8_t m_inputEndpointAddress{0};
+    uint8_t m_outputEndpointAddress{0};
     QElapsedTimer m_timestamp;
     std::optional<uint16_t> m_vendorId;
     std::optional<uint16_t> m_productId;
