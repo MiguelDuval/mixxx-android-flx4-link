@@ -98,7 +98,7 @@ ColumnLayout {
                 , "#b2d145" // 8m
                 , "#7499cd"  // 3m
             ]
-            readonly property variant textMap: ["1d", "8d", "3d", "10d", "5d", "12d", "7d", "2d", "9d", "4d", "11d", "6d", "10m", "5m", "12m", "7m", "2m", "9m", "4m", "11m", "6m", "1m", "8m", "3m"]
+            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
 
             Layout.fillWidth: true
             Layout.leftMargin: 0
@@ -122,8 +122,8 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 text: {
                     if (!trackLoadedControl.value || keyCO.value <= 0)
-                        return "KEY -";
-                    return "KEY " + pitchKey.textMap[keyCO.value];
+                        return "-";
+                    return pitchKey.textMap[keyCO.value];
                 }
                 verticalAlignment: Text.AlignVCenter
             }
