@@ -118,7 +118,6 @@ ColumnLayout {
                 , "#b2d145" // 8m
                 , "#7499cd"  // 3m
             ]
-            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
 
             Layout.fillWidth: true
             Layout.leftMargin: 0
@@ -128,19 +127,24 @@ ColumnLayout {
             contentItem: Text {
                 id: item
 
-                property int displayKeyIndex: Math.round(keyCO.value)
-                property bool validKey: trackLoadedControl.value && displayKeyIndex >= 0 && displayKeyIndex < pitchKey.textMap.length
+                // Use Mixxx's canonical key conversion instead of indexing a hand-written
+                // array. The engine key is ChromaticKey: INVALID=0, C_MAJOR=1 ... B_MINOR=24.
+                readonly property string displayKeyText: Mixxx.KeyUtils.keyToString(keyCO.value)
+                readonly property int openKeyNumber: Mixxx.KeyUtils.keyToOpenKeyNumber(keyCO.value)
+                readonly property bool validKey: trackLoadedControl.value
+                    && Mixxx.KeyUtils.keyIsValid(keyCO.value)
+                    && displayKeyText.length > 0
 
                 color: {
-                    if (!validKey) {
+                    if (!validKey || openKeyNumber < 1 || openKeyNumber > pitchKey.colorsMap.length) {
                         return keylockCO.value ? Theme.white : Theme.midGray3;
                     }
-                    return pitchKey.colorsMap[displayKeyIndex];
+                    return pitchKey.colorsMap[openKeyNumber - 1];
                 }
                 font.bold: true
                 font.pixelSize: 10
                 horizontalAlignment: Text.AlignHCenter
-                text: validKey ? pitchKey.textMap[displayKeyIndex] : "-"
+                text: validKey ? displayKeyText : "-"
                 verticalAlignment: Text.AlignVCenter
             }
         }
