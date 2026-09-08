@@ -32,6 +32,12 @@ Rectangle {
         group: root.group
         key: "loop_enabled"
     }
+    Mixxx.ControlProxy {
+        id: keylockControl
+
+        group: root.group
+        key: "keylock"
+    }
     BeatSizeSpinBoxBehavior {
         id: beatloopSize
 
@@ -86,7 +92,7 @@ Rectangle {
             id: loopInButton
 
             Layout.fillWidth: true
-            Layout.minimumWidth: 28
+            Layout.minimumWidth: 24
             activeColor: root.buttonColor
             group: root.group
             implicitHeight: 26
@@ -98,7 +104,7 @@ Rectangle {
             id: loopOutButton
 
             Layout.fillWidth: true
-            Layout.minimumWidth: 28
+            Layout.minimumWidth: 24
             activeColor: root.buttonColor
             group: root.group
             implicitHeight: 26
@@ -110,7 +116,7 @@ Rectangle {
             id: loopRecallButton
 
             Layout.fillWidth: true
-            Layout.minimumWidth: 40
+            Layout.minimumWidth: 32
             activeColor: root.buttonColor
             group: root.group
             implicitHeight: 26
@@ -118,6 +124,19 @@ Rectangle {
             normalColor: root.buttonColor
             text: loopEnabled.value ? "exit" : "Recall"
             toggleable: loopEnabled.value
+        }
+        Skin.ControlButton {
+            id: keylockButton
+
+            Layout.fillWidth: true
+            Layout.minimumWidth: 46
+            activeColor: root.buttonColor
+            group: root.group
+            implicitHeight: 26
+            key: "keylock"
+            normalColor: root.buttonColor
+            text: "Key Lock"
+            toggleable: true
         }
     }
     RowLayout {
@@ -197,7 +216,6 @@ Rectangle {
             property int selectedIndex: 0
             property int valueCount: Math.min(Math.max(1, parseInt((root.width - 56) / 40)), 4)
             property list<double> values: beatloopSize.beatSizes
-
 
             function adjustSelectedIndex(delta){
                 loopSizeRepeater.selectedIndex = Math.min(Math.max(0, loopSizeRepeater.selectedIndex + delta), loopSizeRepeater.values.length - 1)
