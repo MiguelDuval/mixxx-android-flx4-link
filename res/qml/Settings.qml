@@ -52,6 +52,23 @@ Popup {
                     anchors.margins: 6
                     spacing: 0
 
+                    Skin.Button {
+                        id: backButton
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        activeColor: Theme.white
+                        text: "← Back to Mixxx"
+
+                        onClicked: {
+                            root.close();
+                        }
+                    }
+                    Rectangle {
+                        Layout.fillWidth: true
+                        color: Theme.darkGray3
+                        height: 1
+                    }
                     Rectangle {
                         id: searchSetting
 
