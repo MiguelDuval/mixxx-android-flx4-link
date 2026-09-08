@@ -130,14 +130,14 @@ bool PortMidiController::matchMapping(const MappingInfo& mapping) {
             }
         }
     }
-    // The built-in FLX4 mapping predates product matching metadata. Keep a
-    // deterministic VID/PID fallback so it can be auto-selected on Android.
     return m_vendorId == kDdjFlx4VendorId && m_productId == kDdjFlx4ProductId;
 }
 
 bool PortMidiController::findEndpoints() {
-    m_inputEndpoint = 0;
-    m_outputEndpoint = 0;
+    m_inputEndpoint = QJniObject();
+    m_outputEndpoint = QJniObject();
+    m_inputEndpointAddress = 0;
+    m_outputEndpointAddress = 0;
 
     const int endpointCount = m_usbInterface.callMethod<jint>("getEndpointCount");
     for (int i = 0; i < endpointCount; ++i) {
@@ -145,37 +145,32 @@ bool PortMidiController::findEndpoints() {
                 "getEndpoint",
                 "(I)Landroid/hardware/usb/UsbEndpoint;",
                 i);
+        if (!endpoint.isValid()) {
+            continue;
+        }
         const int address = endpoint.callMethod<jint>("getAddress");
         const int type = endpoint.callMethod<jint>("getType");
         if (type != kUsbEndpointTransferTypeBulk) {
             continue;
         }
         if ((address & kUsbEndpointDirectionIn) != 0) {
-            m_inputEndpoint = static_cast<uint8_t>(address);
+            m_inputEndpoint = endpoint;
+            m_inputEndpointAddress = static_cast<uint8_t>(address);
         } else {
-            m_outputEndpoint = static_cast<uint8_t>(address);
+            m_outputEndpoint = endpoint;
+            m_outputEndpointAddress = static_cast<uint8_t>(address);
         }
     }
     qInfo() << "Android USB MIDI endpoints for" << getName()
             << "interface" << m_interfaceNumber
-            << "IN" << QString::number(m_inputEndpoint, 16)
-            << "OUT" << QString::number(m_outputEndpoint, 16);
-    return m_inputEndpoint != 0;
+            << "IN" << QString::number(m_inputEndpointAddress, 16)
+            << "OUT" << QString::number(m_outputEndpointAddress, 16);
+    return m_inputEndpoint.isValid();
 }
 
 int PortMidiController::open(const QString& resourcePath) {
     Q_UNUSED(resourcePath);
     if (isOpen()) {
-        return -1;
-    }
-
-    struct libusb_init_option initOption {};
-    initOption.option = LIBUSB_OPTION_NO_DEVICE_DISCOVERY;
-    initOption.value.ival = 0;
-    const int initResult = libusb_init_context(&m_libusbContext, &initOption, 1);
-    if (initResult != LIBUSB_SUCCESS || !m_libusbContext) {
-        qCWarning(m_logBase) << "Unable to initialize libusb context:" << initResult;
-        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -188,8 +183,6 @@ int PortMidiController::open(const QString& resourcePath) {
             usbService.object());
     if (!usbManager.isValid()) {
         qCWarning(m_logBase) << "Android USB manager is invalid";
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -205,8 +198,6 @@ int PortMidiController::open(const QString& resourcePath) {
                 pendingIntent.object());
         if (!mixxx::android::waitForPermission(m_usbDevice)) {
             qCWarning(m_logBase) << "Android USB permission was not granted for" << getName();
-            libusb_exit(m_libusbContext);
-            m_libusbContext = nullptr;
             return -1;
         }
     }
@@ -217,50 +208,24 @@ int PortMidiController::open(const QString& resourcePath) {
             m_usbDevice.object());
     if (!m_usbDeviceConnection.isValid()) {
         qCWarning(m_logBase) << "Unable to open Android USB device" << getName();
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
         return -1;
     }
 
     if (!findEndpoints()) {
         qCWarning(m_logBase) << "No USB MIDI bulk IN endpoint found on" << getName();
         m_usbDeviceConnection = QJniObject();
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
         return -1;
     }
 
-    const auto fileDescriptor = static_cast<intptr_t>(
-            m_usbDeviceConnection.callMethod<jint>("getFileDescriptor"));
-    if (fileDescriptor < 0) {
-        qCWarning(m_logBase) << "Invalid USB file descriptor for" << getName();
-        m_usbDeviceConnection = QJniObject();
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
-        return -1;
-    }
-
-    const int wrapResult = libusb_wrap_sys_device(
-            m_libusbContext, fileDescriptor, &m_usbHandle);
-    if (wrapResult != LIBUSB_SUCCESS || !m_usbHandle) {
-        qCWarning(m_logBase) << "libusb_wrap_sys_device failed for" << getName()
-                             << "error" << wrapResult;
-        m_usbHandle = nullptr;
-        m_usbDeviceConnection = QJniObject();
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
-        return -1;
-    }
-
-    const int claimResult = libusb_claim_interface(m_usbHandle, m_interfaceNumber);
-    if (claimResult != LIBUSB_SUCCESS) {
+    const bool claimed = m_usbDeviceConnection.callMethod<jboolean>(
+            "claimInterface",
+            "(Landroid/hardware/usb/UsbInterface;Z)Z",
+            m_usbInterface.object(),
+            true);
+    if (!claimed) {
         qCWarning(m_logBase) << "Unable to claim USB MIDI interface" << m_interfaceNumber
-                             << "for" << getName() << "error" << claimResult;
-        libusb_close(m_usbHandle);
-        m_usbHandle = nullptr;
+                             << "for" << getName();
         m_usbDeviceConnection = QJniObject();
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -275,23 +240,29 @@ int PortMidiController::open(const QString& resourcePath) {
 }
 
 int PortMidiController::close() {
-    if (!isOpen() && !m_usbHandle) {
+    if (!isOpen() && !m_usbDeviceConnection.isValid()) {
         return 0;
     }
 
-    stopEngine();
-    MidiController::close();
+    if (isOpen()) {
+        stopEngine();
+        MidiController::close();
+    }
 
-    if (m_usbHandle) {
-        libusb_release_interface(m_usbHandle, m_interfaceNumber);
-        libusb_close(m_usbHandle);
-        m_usbHandle = nullptr;
+    if (m_usbDeviceConnection.isValid() && m_usbInterface.isValid()) {
+        const bool released = m_usbDeviceConnection.callMethod<jboolean>(
+                "releaseInterface",
+                "(Landroid/hardware/usb/UsbInterface;)Z",
+                m_usbInterface.object());
+        if (!released) {
+            qCWarning(m_logBase) << "Unable to release USB MIDI interface" << m_interfaceNumber
+                                 << "for" << getName();
+        }
     }
+
     m_usbDeviceConnection = QJniObject();
-    if (m_libusbContext) {
-        libusb_exit(m_libusbContext);
-        m_libusbContext = nullptr;
-    }
+    m_inputEndpoint = QJniObject();
+    m_outputEndpoint = QJniObject();
     setOpen(false);
     return 0;
 }
@@ -318,53 +289,56 @@ bool PortMidiController::parseUsbMidiPacket(const uint8_t* packet, int packetSiz
 }
 
 bool PortMidiController::poll() {
-    if (!m_usbHandle || !isOpen() || m_inputEndpoint == 0) {
+    if (!m_usbDeviceConnection.isValid() || !isOpen() || !m_inputEndpoint.isValid()) {
         return false;
     }
 
-    uint8_t buffer[64];
-    int actualLength = 0;
-    const int result = libusb_bulk_transfer(
-            m_usbHandle,
-            m_inputEndpoint,
-            buffer,
-            sizeof(buffer),
-            &actualLength,
-            0);
-    if (result == LIBUSB_ERROR_TIMEOUT || actualLength <= 0) {
+    QJniArray<jbyte> buffer(64);
+    const int actualLength = m_usbDeviceConnection.callMethod<jint>(
+            "bulkTransfer",
+            "(Landroid/hardware/usb/UsbEndpoint;[BIII)I",
+            m_inputEndpoint.object(),
+            buffer.arrayObject(),
+            0,
+            64,
+            1);
+    if (actualLength < 0) {
+        qCWarning(m_logInput) << "Android USB MIDI read failed:" << actualLength;
         return false;
     }
-    if (result != LIBUSB_SUCCESS) {
-        qCWarning(m_logInput) << "USB MIDI read failed:" << result;
+    if (actualLength == 0) {
         return false;
     }
 
+    const QByteArray bytes = buffer.toContainer();
     bool processed = false;
     for (int offset = 0; offset + 4 <= actualLength; offset += 4) {
-        processed |= parseUsbMidiPacket(buffer + offset, 4);
+        processed |= parseUsbMidiPacket(
+                reinterpret_cast<const uint8_t*>(bytes.constData()) + offset, 4);
     }
     return processed;
 }
 
 bool PortMidiController::sendUsbMidiPacket(uint8_t cin, const uint8_t* data, int length) {
-    if (!m_usbHandle || m_outputEndpoint == 0 || length <= 0 || length > 3) {
+    if (!m_usbDeviceConnection.isValid() || !m_outputEndpoint.isValid() || length <= 0 || length > 3) {
         return false;
     }
-    uint8_t packet[4] = {cin, 0, 0, 0};
+    QByteArray packet(4, '\0');
+    packet[0] = static_cast<char>(cin);
     for (int i = 0; i < length; ++i) {
-        packet[i + 1] = data[i];
+        packet[i + 1] = static_cast<char>(data[i]);
     }
-    int actualLength = 0;
-    const int result = libusb_bulk_transfer(
-            m_usbHandle,
-            m_outputEndpoint,
-            packet,
-            sizeof(packet),
-            &actualLength,
+    const QJniArray<jbyte> buffer(packet);
+    const int actualLength = m_usbDeviceConnection.callMethod<jint>(
+            "bulkTransfer",
+            "(Landroid/hardware/usb/UsbEndpoint;[BIII)I",
+            m_outputEndpoint.object(),
+            buffer.arrayObject(),
+            0,
+            4,
             10);
-    if (result != LIBUSB_SUCCESS || actualLength != 4) {
-        qCWarning(m_logOutput) << "USB MIDI write failed:" << result
-                               << "bytes" << actualLength;
+    if (actualLength != 4) {
+        qCWarning(m_logOutput) << "Android USB MIDI write failed:" << actualLength;
         return false;
     }
     return true;
@@ -378,7 +352,7 @@ void PortMidiController::sendShortMsg(unsigned char status, unsigned char byte1,
 }
 
 bool PortMidiController::sendBytes(const QByteArray& data) {
-    if (!m_usbHandle || m_outputEndpoint == 0 || data.isEmpty()) {
+    if (!m_usbDeviceConnection.isValid() || !m_outputEndpoint.isValid() || data.isEmpty()) {
         return false;
     }
     int offset = 0;
