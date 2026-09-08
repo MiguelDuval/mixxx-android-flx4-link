@@ -1,3 +1,5 @@
+#ifndef __ANDROID__
+
 #if __has_include("../mocs_compilation_Debug.cpp")
 #include "../mocs_compilation_Debug.cpp"
 #elif __has_include("../mocs_compilation_Release.cpp")
@@ -14,3 +16,5 @@
 #ifdef QT_VERSION
 #error mocs_compilation.cpp not empty. Move all #include "moc_<header_base>.cpp" lines from mocs_compilation.cpp to the cpp files of the related classes.
 #endif
+
+#endif // !__ANDROID__
