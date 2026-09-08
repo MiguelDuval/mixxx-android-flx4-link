@@ -19,12 +19,12 @@ realpath() {
 
 # Get script file location, compatible with bash and zsh
 if [ -n "$BASH_VERSION" ]; then
-  THIS_SCRIPT_NAME="${BASH_SOURCE[0]}"
+    THIS_SCRIPT_NAME="${BASH_SOURCE[0]}"
 elif [ -n "$ZSH_VERSION" ]; then
-  # shellcheck disable=SC2296
-  THIS_SCRIPT_NAME="${(%):-%N}"
+    # shellcheck disable=SC2296
+    THIS_SCRIPT_NAME="${(%):-%N}"
 else
-  THIS_SCRIPT_NAME="$0"
+    THIS_SCRIPT_NAME="$0"
 fi
 
 HOST_ARCH=$(uname -m)  # One of x86_64, arm64, i386, ppc or ppc64
@@ -39,7 +39,7 @@ if [ "$HOST_ARCH" == "x86_64" ]; then
         VCPKG_TARGET_TRIPLET="arm64-android"
         BUILDENV_BRANCH="2.7"
         BUILDENV_NAME="mixxx-deps-2.7-arm64-android-1c20f84a"
-        BUILDENV_SHA256="6786c09f491166352880984842ffa6f554e974f30a3766a2392298444c1be83c"
+        BUILDENV_SHA256="942bc2d3548948a872499dfd374deccafd73e1c247c7c1714e61c177975c4795"
     fi
 else
     echo "ERROR: Unsupported architecture detected: $HOST_ARCH"
