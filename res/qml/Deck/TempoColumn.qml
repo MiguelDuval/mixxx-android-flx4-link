@@ -24,10 +24,10 @@ ColumnLayout {
         key: "key"
     }
     Mixxx.ControlProxy {
-        id: visualBpmCO
+        id: bpmCO
 
         group: root.group
-        key: "visual_bpm"
+        key: "bpm"
     }
     Text {
         Layout.fillWidth: true
@@ -37,9 +37,9 @@ ColumnLayout {
         font.pixelSize: 12
         horizontalAlignment: Text.AlignHCenter
         text: {
-            if (!trackLoadedControl.value || visualBpmCO.value <= 0)
+            if (!trackLoadedControl.value || bpmCO.value <= 0)
                 return "-";
-            return (Math.round(visualBpmCO.value * 100) / 100).toString();
+            return (Math.round(bpmCO.value * 100) / 100).toFixed(2);
         }
         verticalAlignment: Text.AlignVCenter
     }
