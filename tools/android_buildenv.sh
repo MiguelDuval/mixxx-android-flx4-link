@@ -39,7 +39,7 @@ if [ "$HOST_ARCH" == "x86_64" ]; then
         VCPKG_TARGET_TRIPLET="arm64-android"
         BUILDENV_BRANCH="2.7"
         BUILDENV_NAME="mixxx-deps-2.7-arm64-android-1c20f84a"
-        BUILDENV_SHA256="942bc2d3548948a872499dfd374deccafd73e1c247c7c1714e61c177975c4795"
+        BUILDENV_SHA256="6786c09f491166352880984842ffa6f554e974f30a3766a2392298444c1be83c"
     fi
 else
     echo "ERROR: Unsupported architecture detected: $HOST_ARCH"
