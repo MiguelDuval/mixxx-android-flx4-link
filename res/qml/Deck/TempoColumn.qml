@@ -21,7 +21,7 @@ ColumnLayout {
         id: keyCO
 
         group: root.group
-        key: "key"
+        key: "visual_key"
     }
     Mixxx.ControlProxy {
         id: bpmCO
@@ -118,7 +118,7 @@ ColumnLayout {
                 , "#b2d145" // 8m
                 , "#7499cd"  // 3m
             ]
-            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Bbm", "Bm"]
+            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
 
             Layout.fillWidth: true
             Layout.leftMargin: 0
@@ -128,20 +128,19 @@ ColumnLayout {
             contentItem: Text {
                 id: item
 
+                property int displayKeyIndex: Math.round(keyCO.value)
+                property bool validKey: trackLoadedControl.value && displayKeyIndex >= 0 && displayKeyIndex < pitchKey.textMap.length
+
                 color: {
-                    if (!trackLoadedControl.value || keyCO.value <= 0) {
+                    if (!validKey) {
                         return keylockCO.value ? Theme.white : Theme.midGray3;
                     }
-                    return pitchKey.colorsMap[keyCO.value];
+                    return pitchKey.colorsMap[displayKeyIndex];
                 }
                 font.bold: true
                 font.pixelSize: 10
                 horizontalAlignment: Text.AlignHCenter
-                text: {
-                    if (!trackLoadedControl.value || keyCO.value <= 0)
-                        return "-";
-                    return pitchKey.textMap[keyCO.value];
-                }
+                text: validKey ? pitchKey.textMap[displayKeyIndex] : "-"
                 verticalAlignment: Text.AlignVCenter
             }
         }
