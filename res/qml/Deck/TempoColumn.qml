@@ -25,14 +25,14 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
-        height: 22
+        height: 26
 
         Skin.ControlButton {
             id: pitchDownButton
 
             activeColor: Theme.deckActiveColor
             group: root.group
-            implicitHeight: 22
+            implicitHeight: 26
             implicitWidth: 20
             key: "pitch_down"
 
@@ -104,7 +104,7 @@ ColumnLayout {
             Layout.leftMargin: 0
             Layout.rightMargin: 0
             group: root.group
-            implicitHeight: 22
+            implicitHeight: 26
             key: "keylock"
             toggleable: true
 
@@ -117,12 +117,13 @@ ColumnLayout {
                     }
                     return pitchKey.colorsMap[keyCO.value];
                 }
-                font.pixelSize: 8
+                font.bold: true
+                font.pixelSize: 10
                 horizontalAlignment: Text.AlignHCenter
                 text: {
                     if (!trackLoadedControl.value || keyCO.value <= 0)
-                        return "-";
-                    return pitchKey.textMap[keyCO.value];
+                        return "KEY -";
+                    return "KEY " + pitchKey.textMap[keyCO.value];
                 }
                 verticalAlignment: Text.AlignVCenter
             }
@@ -132,7 +133,7 @@ ColumnLayout {
 
             activeColor: Theme.deckActiveColor
             group: root.group
-            implicitHeight: 22
+            implicitHeight: 26
             implicitWidth: 20
             key: "pitch_up"
 
