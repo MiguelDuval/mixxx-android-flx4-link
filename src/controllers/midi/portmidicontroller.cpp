@@ -184,13 +184,13 @@ int PortMidiController::open(const QString& resourcePath) {
     if (!usbManager.callMethod<jboolean>(
                 "hasPermission",
                 "(Landroid/hardware/usb/UsbDevice;)Z",
-                m_usbDevice)) {
+                m_usbDevice.object())) {
         const auto& pendingIntent = mixxx::android::getIntent();
         usbManager.callMethod<void>(
                 "requestPermission",
                 "(Landroid/hardware/usb/UsbDevice;Landroid/app/PendingIntent;)V",
-                m_usbDevice,
-                pendingIntent);
+                m_usbDevice.object(),
+                pendingIntent.object());
         if (!mixxx::android::waitForPermission(m_usbDevice)) {
             qCWarning(m_logBase) << "Android USB permission was not granted for" << getName();
             return -1;
@@ -200,7 +200,7 @@ int PortMidiController::open(const QString& resourcePath) {
     m_usbDeviceConnection = usbManager.callObjectMethod(
             "openDevice",
             "(Landroid/hardware/usb/UsbDevice;)Landroid/hardware/usb/UsbDeviceConnection;",
-            m_usbDevice);
+            m_usbDevice.object());
     if (!m_usbDeviceConnection.isValid()) {
         qCWarning(m_logBase) << "Unable to open Android USB device" << getName();
         return -1;
