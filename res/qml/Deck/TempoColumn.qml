@@ -23,6 +23,26 @@ ColumnLayout {
         group: root.group
         key: "key"
     }
+    Mixxx.ControlProxy {
+        id: visualBpmCO
+
+        group: root.group
+        key: "visual_bpm"
+    }
+    Text {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 26
+        color: Theme.white
+        font.bold: true
+        font.pixelSize: 12
+        horizontalAlignment: Text.AlignHCenter
+        text: {
+            if (!trackLoadedControl.value || visualBpmCO.value <= 0)
+                return "-";
+            return (Math.round(visualBpmCO.value * 100) / 100).toString();
+        }
+        verticalAlignment: Text.AlignVCenter
+    }
     RowLayout {
         Layout.fillWidth: true
         height: 26
