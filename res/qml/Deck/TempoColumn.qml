@@ -21,7 +21,7 @@ ColumnLayout {
         id: keyCO
 
         group: root.group
-        key: "key"
+        key: "visual_key"
     }
     Mixxx.ControlProxy {
         id: bpmCO
@@ -93,7 +93,9 @@ ColumnLayout {
             id: pitchKey
 
             // FIXME: the following map are copied from S4 mapping. Once the interface setting PR is merged, we should use the palette
-            readonly property variant colorsMap: ["#b960a2"// 1d
+            // ChromaticKey is 1-based: 0 is INVALID, 1..24 are musical keys.
+            readonly property variant colorsMap: ["transparent" // 0 = INVALID
+                , "#b960a2" // 1d
                 , "#9fc516" // 8d
                 , "#527fc0" // 3d
                 , "#f28b2e" // 10d
@@ -116,9 +118,9 @@ ColumnLayout {
                 , "#70c4a0" // 6m
                 , "#c680b6" // 1m
                 , "#b2d145" // 8m
-                , "#7499cd"  // 3m
+                , "#7499cd" // 3m
             ]
-            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
+            readonly property variant textMap: ["", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
 
             Layout.fillWidth: true
             Layout.leftMargin: 0
@@ -129,7 +131,7 @@ ColumnLayout {
                 id: item
 
                 property int displayKeyIndex: Math.round(keyCO.value)
-                property bool validKey: trackLoadedControl.value && displayKeyIndex >= 0 && displayKeyIndex < pitchKey.textMap.length
+                property bool validKey: trackLoadedControl.value && displayKeyIndex > 0 && displayKeyIndex < pitchKey.textMap.length
 
                 color: {
                     if (!validKey) {
