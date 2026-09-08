@@ -169,6 +169,16 @@ int PortMidiController::open(const QString& resourcePath) {
         return -1;
     }
 
+    struct libusb_init_option initOption {};
+    initOption.option = LIBUSB_OPTION_NO_DEVICE_DISCOVERY;
+    initOption.value.ival = 0;
+    const int initResult = libusb_init_context(&m_libusbContext, &initOption, 1);
+    if (initResult != LIBUSB_SUCCESS || !m_libusbContext) {
+        qCWarning(m_logBase) << "Unable to initialize libusb context:" << initResult;
+        m_libusbContext = nullptr;
+        return -1;
+    }
+
     QJniObject context = QNativeInterface::QAndroidApplication::context();
     QJniObject usbService = QJniObject::getStaticObjectField(
             "android/content/Context", "USB_SERVICE", "Ljava/lang/String;");
@@ -178,6 +188,8 @@ int PortMidiController::open(const QString& resourcePath) {
             usbService.object());
     if (!usbManager.isValid()) {
         qCWarning(m_logBase) << "Android USB manager is invalid";
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -193,6 +205,8 @@ int PortMidiController::open(const QString& resourcePath) {
                 pendingIntent.object());
         if (!mixxx::android::waitForPermission(m_usbDevice)) {
             qCWarning(m_logBase) << "Android USB permission was not granted for" << getName();
+            libusb_exit(m_libusbContext);
+            m_libusbContext = nullptr;
             return -1;
         }
     }
@@ -203,12 +217,16 @@ int PortMidiController::open(const QString& resourcePath) {
             m_usbDevice.object());
     if (!m_usbDeviceConnection.isValid()) {
         qCWarning(m_logBase) << "Unable to open Android USB device" << getName();
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
     if (!findEndpoints()) {
         qCWarning(m_logBase) << "No USB MIDI bulk IN endpoint found on" << getName();
         m_usbDeviceConnection = QJniObject();
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -217,17 +235,20 @@ int PortMidiController::open(const QString& resourcePath) {
     if (fileDescriptor < 0) {
         qCWarning(m_logBase) << "Invalid USB file descriptor for" << getName();
         m_usbDeviceConnection = QJniObject();
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
-    libusb_set_option(nullptr, LIBUSB_OPTION_NO_DEVICE_DISCOVERY);
     const int wrapResult = libusb_wrap_sys_device(
-            nullptr, fileDescriptor, &m_usbHandle);
+            m_libusbContext, fileDescriptor, &m_usbHandle);
     if (wrapResult != LIBUSB_SUCCESS || !m_usbHandle) {
         qCWarning(m_logBase) << "libusb_wrap_sys_device failed for" << getName()
                              << "error" << wrapResult;
         m_usbHandle = nullptr;
         m_usbDeviceConnection = QJniObject();
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -238,6 +259,8 @@ int PortMidiController::open(const QString& resourcePath) {
         libusb_close(m_usbHandle);
         m_usbHandle = nullptr;
         m_usbDeviceConnection = QJniObject();
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
         return -1;
     }
 
@@ -265,6 +288,10 @@ int PortMidiController::close() {
         m_usbHandle = nullptr;
     }
     m_usbDeviceConnection = QJniObject();
+    if (m_libusbContext) {
+        libusb_exit(m_libusbContext);
+        m_libusbContext = nullptr;
+    }
     setOpen(false);
     return 0;
 }
