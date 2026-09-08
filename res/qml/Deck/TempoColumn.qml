@@ -15,7 +15,7 @@ ColumnLayout {
         id: keylockCO
 
         group: root.group
-        key: pitchKey.key
+        key: "keylock"
     }
     Mixxx.ControlProxy {
         id: keyCO
@@ -89,7 +89,7 @@ ColumnLayout {
                 }
             }
         }
-        Skin.ControlButton {
+        Skin.Button {
             id: pitchKey
 
             // FIXME: the following map are copied from S4 mapping. Once the interface setting PR is merged, we should use the palette
@@ -118,15 +118,12 @@ ColumnLayout {
                 , "#b2d145" // 8m
                 , "#7499cd"  // 3m
             ]
-            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Abm", "Bbm", "Bm"]
+            readonly property variant textMap: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B", "Cm", "Dbm", "Dm", "Ebm", "Em", "Fm", "Gbm", "Bbm", "Bm"]
 
             Layout.fillWidth: true
             Layout.leftMargin: 0
             Layout.rightMargin: 0
-            group: root.group
             implicitHeight: 26
-            key: "keylock"
-            toggleable: true
 
             contentItem: Text {
                 id: item
