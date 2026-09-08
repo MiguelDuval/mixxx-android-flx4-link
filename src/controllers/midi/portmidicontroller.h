@@ -121,6 +121,7 @@ class PortMidiController final : public MidiController {
     QJniObject m_usbDevice;
     QJniObject m_usbInterface;
     QJniObject m_usbDeviceConnection;
+    libusb_context* m_libusbContext{nullptr};
     libusb_device_handle* m_usbHandle{nullptr};
     int m_interfaceNumber{-1};
     uint8_t m_inputEndpoint{0};
