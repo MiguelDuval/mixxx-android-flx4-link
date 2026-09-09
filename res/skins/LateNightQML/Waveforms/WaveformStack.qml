@@ -1,8 +1,7 @@
 import "../LateNightTheme"
 import "../Deck"
 import "../../../qml" as Shared
-import QtQuick
-import QtQuick.Controls
+import Mixxx 1.0 as Mixxx
 
 Item {
     id: root
@@ -12,11 +11,19 @@ Item {
     property string deck3Group: "[Channel3]"
     property string deck4Group: "[Channel4]"
     property bool show4decks: false
-    property bool showBeatgridControls: false
 
     readonly property int beatgridToggleWidth: 26
     readonly property int beatgridToggleSpacing: 2
-    readonly property int waveformWidth: Math.max(0, root.width - root.beatgridToggleWidth - root.beatgridToggleSpacing)
+    readonly property int beatgridButtonsWidth: beatgridToggleWidth * 2 + beatgridToggleSpacing
+    readonly property real waveformWidth: Math.max(0, root.width - root.beatgridButtonsWidth)
+
+    Mixxx.ControlProxy {
+        id: beatgridVisibilityProxy
+        group: "[Skin]"
+        key: "show_beatgrid_controls"
+    }
+
+    readonly property bool showBeatgridControls: beatgridVisibilityProxy.value > 0
 
     Loader {
         id: waveformContent
@@ -92,6 +99,7 @@ Item {
                     }
                 }
 
+                // Existing LateNight artwork retained for visual comparison.
                 LateNightIconButton {
                     id: beatgridToggle
 
@@ -108,19 +116,28 @@ Item {
                     contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
                 }
 
-                AbstractButton {
-                    id: beatgridToggleButton
+                // Independent functional button. It is deliberately placed to the
+                // left of the legacy artwork and uses the real persistent Mixxx
+                // [Skin] control instead of a local-only QML boolean.
+                LateNightControlButton {
+                    id: independentBeatgridToggle
 
-                    anchors.fill: beatgridToggle
-                    z: 1000
-                    background: null
-                    contentItem: Item {}
-                    hoverEnabled: false
-                    focusPolicy: Qt.NoFocus
-
-                    onClicked: {
-                        root.showBeatgridControls = !root.showBeatgridControls;
-                    }
+                    anchors.right: beatgridToggle.left
+                    anchors.rightMargin: root.beatgridToggleSpacing
+                    anchors.top: parent.top
+                    width: root.beatgridToggleWidth
+                    height: 52
+                    backgroundSource: LateNightTheme.lateNightTopRegionButton("library_tall")
+                    iconSource: LateNightTheme.assetDeckBeatCurposLargeButton
+                    group: "[Skin]"
+                    key: "show_beatgrid_controls"
+                    toggleable: true
+                    activeBackgroundSuffix: "active"
+                    pressedBackgroundSuffix: "active"
+                    activeOpacity: 1.0
+                    inactiveOpacity: 0.82
+                    activeColor: LateNightTheme.deckDimButtonInactiveColor
+                    inactiveColor: LateNightTheme.deckDimButtonInactiveColor
                 }
             }
         }
