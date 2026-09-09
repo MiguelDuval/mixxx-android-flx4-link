@@ -106,12 +106,9 @@ Item {
                     activeOpacity: 1.0
                     contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.showBeatgridControls = !root.showBeatgridControls;
-                        }
+                    TapHandler {
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                        onTapped: root.showBeatgridControls = !root.showBeatgridControls
                     }
                 }
             }
