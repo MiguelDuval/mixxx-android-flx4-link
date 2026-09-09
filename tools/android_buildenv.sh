@@ -39,7 +39,10 @@ if [ "$HOST_ARCH" == "x86_64" ]; then
         VCPKG_TARGET_TRIPLET="arm64-android"
         BUILDENV_BRANCH="2.7"
         BUILDENV_NAME="mixxx-deps-2.7-arm64-android-1c20f84a"
-        BUILDENV_SHA256="a0d7b3282a7241c8d7df81393659b884e5f410483d7319057421c93ec99dfb72"
+        # The upstream 2.7 build environment archive is currently mutable.
+        # Leave the checksum empty so CMake does not reject an otherwise usable
+        # archive when the same URL returns a different package hash.
+        BUILDENV_SHA256=""
     fi
 else
     echo "ERROR: Unsupported architecture detected: $HOST_ARCH"
