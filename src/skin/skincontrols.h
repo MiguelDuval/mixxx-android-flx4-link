@@ -19,4 +19,7 @@ class SkinControls {
     ControlPushButton m_showSettings;
     ControlPushButton m_showSpinnies;
     ControlPushButton m_showVinylControl;
+    // Beatgrid controls for LateNightQML skin
+    ControlPushButton m_showBeatgridControls;
+    ControlPushButton m_timingShiftButtons;
 };

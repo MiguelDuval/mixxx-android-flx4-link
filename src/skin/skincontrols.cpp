@@ -42,6 +42,12 @@ SkinControls::SkinControls()
                   true),
           m_showVinylControl(ConfigKey(kSkinGroup, QStringLiteral("show_vinylcontrol")),
                   true,
+                  false),
+          m_showBeatgridControls(ConfigKey(kSkinGroup, QStringLiteral("show_beatgrid_controls")),
+                  true,
+                  true),
+          m_timingShiftButtons(ConfigKey(kSkinGroup, QStringLiteral("timing_shift_buttons")),
+                  true,
                   false) {
     m_showEffectRack.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showLibraryCoverArt.setButtonMode(mixxx::control::ButtonMode::Toggle);
@@ -55,6 +61,8 @@ SkinControls::SkinControls()
     m_showSettings.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showSpinnies.setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_showVinylControl.setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_showBeatgridControls.setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_timingShiftButtons.setButtonMode(mixxx::control::ButtonMode::Toggle);
 
     m_showEffectRack.addAlias(ConfigKey(QStringLiteral("[EffectRack1]"), QStringLiteral("show")));
     m_showLibraryCoverArt.addAlias(ConfigKey(
