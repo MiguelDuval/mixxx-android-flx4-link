@@ -105,10 +105,22 @@ Item {
                     pressedBackgroundSuffix: "active"
                     activeOpacity: 1.0
                     contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
+                }
 
-                    TapHandler {
-                        gesturePolicy: TapHandler.ReleaseWithinBounds
-                        onTapped: root.showBeatgridControls = !root.showBeatgridControls
+                // Keep the touch target completely independent from the button's
+                // visual children. On Android the waveform MouseArea can steal
+                // a gesture before a nested handler reaches its release signal.
+                MouseArea {
+                    id: beatgridToggleTouchArea
+
+                    anchors.fill: beatgridToggle
+                    z: 1000
+                    acceptedButtons: Qt.LeftButton
+                    preventStealing: true
+                    hoverEnabled: false
+
+                    onPressed: {
+                        root.showBeatgridControls = !root.showBeatgridControls;
                     }
                 }
             }
