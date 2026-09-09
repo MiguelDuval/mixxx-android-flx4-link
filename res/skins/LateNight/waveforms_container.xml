@@ -94,18 +94,6 @@
 
           <WidgetGroup><Size>1f,1min</Size></WidgetGroup>
 
-          <!-- Second BeatGrid button: use the exact same stock skin object name and template. -->
-          <Template src="skins:LateNight/controls/button_2state_persist.xml">
-            <SetVariable name="TooltipId">show_beatgrid_controls</SetVariable>
-            <SetVariable name="ObjectName">BeatgridControlsToggle</SetVariable>
-            <SetVariable name="Size">26f,52f</SetVariable>
-            <SetVariable name="BtnSize"></SetVariable>
-            <SetVariable name="ConfigKey">[Skin],show_beatgrid_controls</SetVariable>
-          </Template>
-
-          <WidgetGroup><Size>1f,1min</Size></WidgetGroup>
-
-          <!-- Existing BeatGrid control. -->
           <Template src="skins:LateNight/controls/button_2state_persist.xml">
             <SetVariable name="TooltipId">show_beatgrid_controls</SetVariable>
             <SetVariable name="ObjectName">BeatgridControlsToggle</SetVariable>
