@@ -6,7 +6,7 @@
       <WidgetGroup>
         <ObjectName>DeckSettings</ObjectName>
         <Layout>vertical</Layout>
-        <Size>76min,0min</Size>
+        <Size>84min,0min</Size>
         <Children>
 
           <WidgetGroup><Size>0min,0me</Size></WidgetGroup>
@@ -75,6 +75,28 @@
                 <SetVariable name="ConfigKey"><Variable name="Group"/>,repeat</SetVariable>
                 <SetVariable name="Size">21f,18f</SetVariable>
               </Template>
+
+              <PushButton>
+                <TooltipId>show_beatgrid_controls</TooltipId>
+                <ObjectName>BeatgridButton<Variable name="DeckGroup"/></ObjectName>
+                <Size>21f,18f</Size>
+                <NumberStates>2</NumberStates>
+                <RightClickIsPushButton>false</RightClickIsPushButton>
+                <State>
+                  <Number>0</Number>
+                  <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn__beatgrid_controls_expand.svg</Unpressed>
+                  <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn__beatgrid_controls_expand.svg</Pressed>
+                </State>
+                <State>
+                  <Number>1</Number>
+                  <Unpressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn__beatgrid_controls_collapse.svg</Unpressed>
+                  <Pressed scalemode="STRETCH">skins:LateNight/<Variable name="BtnScheme"/>/buttons/btn__beatgrid_controls_collapse.svg</Pressed>
+                </State>
+                <Connection>
+                  <ConfigKey persist="true">[Skin],show_beatgrid_controls</ConfigKey>
+                  <ButtonState>LeftButton</ButtonState>
+                </Connection>
+              </PushButton>
 
               <Template src="skins:LateNight/controls/button_2state.xml">
                 <SetVariable name="TooltipId">keylock</SetVariable>
