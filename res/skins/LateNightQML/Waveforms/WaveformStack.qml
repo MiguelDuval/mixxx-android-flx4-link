@@ -2,6 +2,7 @@ import "../LateNightTheme"
 import "../Deck"
 import "../../../qml" as Shared
 import QtQuick
+import QtQuick.Controls
 
 Item {
     id: root
@@ -107,19 +108,17 @@ Item {
                     contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
                 }
 
-                // Keep the touch target completely independent from the button's
-                // visual children. On Android the waveform MouseArea can steal
-                // a gesture before a nested handler reaches its release signal.
-                MouseArea {
-                    id: beatgridToggleTouchArea
+                AbstractButton {
+                    id: beatgridToggleButton
 
                     anchors.fill: beatgridToggle
                     z: 1000
-                    acceptedButtons: Qt.LeftButton
-                    preventStealing: true
+                    background: null
+                    contentItem: Item {}
                     hoverEnabled: false
+                    focusPolicy: Qt.NoFocus
 
-                    onPressed: {
+                    onClicked: {
                         root.showBeatgridControls = !root.showBeatgridControls;
                     }
                 }
