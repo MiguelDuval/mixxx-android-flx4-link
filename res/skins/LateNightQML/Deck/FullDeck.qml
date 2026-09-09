@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Mixxx 1.0 as Mixxx
 import "../Controls" as Controls
 import "../LateNightTheme"
+import "../Waveforms"
 
 Controls.Panel {
     id: root
@@ -24,6 +25,8 @@ Controls.Panel {
     readonly property bool showRateControls: showRateControlsProxy.value > 0
     readonly property bool showSmallSpinnyOrCover: selectBigSpinnyProxy.value <= 0 && !root.minimized
     readonly property bool showVinylControls: showVinylControlsProxy.value > 0
+    readonly property bool showBeatgridControls: showBeatgridControlsProxy.value > 0
+    readonly property int beatgridControlsWidth: timingShiftButtonsProxy.value > 0 ? 130 : 104
 
     signal toggleFocus
 
@@ -95,6 +98,18 @@ Controls.Panel {
         key: "show_rate_control_buttons"
     }
 
+    Mixxx.ControlProxy {
+        id: showBeatgridControlsProxy
+        group: "[Skin]"
+        key: "show_beatgrid_controls"
+    }
+
+    Mixxx.ControlProxy {
+        id: timingShiftButtonsProxy
+        group: "[Skin]"
+        key: "timing_shift_buttons"
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 1
@@ -111,7 +126,7 @@ Controls.Panel {
             Layout.alignment: Qt.AlignTop
             spacing: 1
 
-            // Top row: FX assignment and key controls.
+            // Top row: FX assignment, BeatGrid, and key controls.
             RowLayout {
                 id: topPlaceholderRow
                 Layout.fillWidth: true
@@ -120,7 +135,7 @@ Controls.Panel {
                 Layout.maximumHeight: 20
                 Layout.fillHeight: false
                 visible: !root.minimized
-                spacing: 0
+                spacing: 1
 
                 // FX assignment buttons: toggle effect unit assignment for this deck
                 Row {
@@ -200,6 +215,50 @@ Controls.Panel {
                     }
                 }
 
+                // Dedicated Android BeatGrid touch button. This is intentionally
+                // self-rendered and always present in the active QML deck.
+                Item {
+                    id: beatgridToggle
+                    Layout.preferredWidth: 58
+                    Layout.minimumWidth: 58
+                    Layout.maximumWidth: 58
+                    Layout.preferredHeight: 20
+                    Layout.minimumHeight: 20
+                    Layout.maximumHeight: 20
+                    Layout.alignment: Qt.AlignVCenter
+                    z: 20
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 2
+                        color: root.showBeatgridControls
+                                ? LateNightTheme.deckDimButtonInactiveColor
+                                : LateNightTheme.deckTopRowBackgroundColor
+                        border.width: 1
+                        border.color: LateNightTheme.deckPanelBorderLight
+                    }
+
+                    Text {
+                        anchors.fill: parent
+                        text: "BEATGRID"
+                        color: root.showBeatgridControls
+                                ? LateNightTheme.primaryDeckTextColor
+                                : LateNightTheme.secondaryDeckTextColor
+                        font.family: "Open Sans"
+                        font.pixelSize: 9
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton
+                        onTapped: {
+                            showBeatgridControlsProxy.value = root.showBeatgridControls ? 0.0 : 1.0;
+                        }
+                    }
+                }
+
                 VinylControlsPlaceholder {
                     Layout.preferredWidth: 158
                     Layout.preferredHeight: 20
@@ -265,7 +324,8 @@ Controls.Panel {
                         }
                     }
 
-                    // Row containing Small Spinny (on the left of overview) and the Waveform Overview
+                    // Row containing Small Spinny (on the left of overview), waveform overview,
+                    // and the real BeatGrid editor when enabled.
                     RowLayout {
                         id: overviewAndSpinnyRow
                         Layout.fillWidth: true
@@ -290,6 +350,20 @@ Controls.Panel {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             group: root.group
+                        }
+
+                        // Real beatgrid editor from LateNightQML/Waveforms.
+                        BeatgridControls {
+                            id: beatgridControls
+                            Layout.preferredWidth: root.showBeatgridControls ? root.beatgridControlsWidth : 0
+                            Layout.minimumWidth: root.showBeatgridControls ? root.beatgridControlsWidth : 0
+                            Layout.maximumWidth: root.beatgridControlsWidth
+                            Layout.preferredHeight: 52
+                            Layout.maximumHeight: 52
+                            Layout.alignment: Qt.AlignVCenter
+                            group: root.group
+                            visible: root.showBeatgridControls
+                            z: 20
                         }
                     }
                 }
