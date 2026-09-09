@@ -8,6 +8,7 @@ Item {
     id: root
 
     required property string group
+    property bool showBeatgridControls: false
 
     Mixxx.ControlProxy {
         id: showBeatgridControlsProxy
@@ -36,6 +37,6 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         width: timingShiftButtonsProxy.value > 0 ? 130 : 104
-        visible: showBeatgridControlsProxy.value > 0
+        visible: root.showBeatgridControls || showBeatgridControlsProxy.value > 0
     }
 }
