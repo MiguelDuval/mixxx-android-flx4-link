@@ -31,6 +31,16 @@ Item {
     property alias showSamplers: toolbar.showSamplers
     readonly property bool showWaveforms: toolbar.showWaveforms
 
+    // Bootstrap all skin controls BEFORE toolbar and deck children construct their proxies.
+    // This ensures ControlProxy in BeatgridControls.qml and DeckWaveform.qml can find the controls.
+    Loader {
+        id: skinControlBootstrap
+        active: true
+        sourceComponent: Component {
+            SkinControlBootstrap { }
+        }
+    }
+
     function focusLegacyLibrarySearch() {
         Qt.callLater(function() {
             if (library.item) {
