@@ -125,6 +125,12 @@ Item {
     Mixxx.SkinControlCreator {
         defaultValue: 1.0
         group: "[Skin]"
+        key: "show_beatgrid_controls"
+        persist: true
+    }
+    Mixxx.SkinControlCreator {
+        defaultValue: 1.0
+        group: "[Skin]"
         key: "show_beatjump_controls"
         persist: true
     }
