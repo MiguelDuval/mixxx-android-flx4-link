@@ -24,6 +24,12 @@ jobs:
       - name: Prepare Android build environment
         shell: bash
         run: |
+          # The hosted Ubuntu image can occasionally ship a stale/mismatched
+          # Google Chrome apt index. Chrome is not required to build Mixxx, and
+          # its index can make apt-get update fail before sdkmanager is installed.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get clean
           source ./tools/android_buildenv.sh setup
 
       - name: Create temporary signing key
