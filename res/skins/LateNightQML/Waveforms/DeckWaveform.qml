@@ -11,12 +11,6 @@ Item {
     property bool showBeatgridControls: false
 
     Mixxx.ControlProxy {
-        id: showBeatgridControlsProxy
-        group: "[Skin]"
-        key: "show_beatgrid_controls"
-    }
-
-    Mixxx.ControlProxy {
         id: timingShiftButtonsProxy
         group: "[Skin]"
         key: "timing_shift_buttons"
@@ -37,6 +31,6 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         width: timingShiftButtonsProxy.value > 0 ? 130 : 104
-        visible: root.showBeatgridControls || showBeatgridControlsProxy.value > 0
+        visible: root.showBeatgridControls
     }
 }
