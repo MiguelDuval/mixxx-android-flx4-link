@@ -115,30 +115,46 @@ Item {
                     activeOpacity: 1.0
                     contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
                 }
+            }
+        }
+    }
 
-                // Independent functional button. It is deliberately placed to the
-                // left of the legacy artwork and uses the real persistent Mixxx
-                // [Skin] control instead of a local-only QML boolean.
-                LateNightControlButton {
-                    id: independentBeatgridToggle
+    // Independent BeatGrid test control is intentionally outside the Loader.
+    // It is a direct child of WaveformStack, so its geometry and z-order do not
+    // depend on the dynamically created waveform component.
+    LateNightIconButton {
+        id: independentBeatgridToggle
 
-                    anchors.right: beatgridToggle.left
-                    anchors.rightMargin: root.beatgridToggleSpacing
-                    anchors.top: parent.top
-                    width: root.beatgridToggleWidth
-                    height: 52
-                    backgroundSource: LateNightTheme.lateNightTopRegionButton("library_tall")
-                    iconSource: LateNightTheme.assetDeckBeatCurposLargeButton
-                    group: "[Skin]"
-                    key: "show_beatgrid_controls"
-                    toggleable: true
-                    activeBackgroundSuffix: "active"
-                    pressedBackgroundSuffix: "active"
-                    activeOpacity: 1.0
-                    inactiveOpacity: 0.82
-                    activeColor: LateNightTheme.deckDimButtonInactiveColor
-                    inactiveColor: LateNightTheme.deckDimButtonInactiveColor
-                }
+        anchors.right: parent.right
+        anchors.rightMargin: root.beatgridToggleWidth + root.beatgridToggleSpacing
+        anchors.top: parent.top
+        width: root.beatgridToggleWidth
+        height: 52
+        z: 10000
+        visible: true
+        backgroundSource: LateNightTheme.lateNightTopRegionButton("library_tall")
+        iconSource: LateNightTheme.assetDeckBeatCurposLargeButton
+        activeState: root.showBeatgridControls
+        activeBackgroundSuffix: "active"
+        pressedBackgroundSuffix: "active"
+        activeOpacity: 1.0
+        contentOpacity: root.showBeatgridControls ? 1.0 : 0.82
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            color: "transparent"
+            border.color: "#ffffff"
+            border.width: 1
+            opacity: 0.85
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            preventStealing: true
+            onClicked: {
+                beatgridVisibilityProxy.value = beatgridVisibilityProxy.value > 0 ? 0 : 1
             }
         }
     }
