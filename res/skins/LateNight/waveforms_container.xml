@@ -94,28 +94,14 @@
 
           <WidgetGroup><Size>1f,1min</Size></WidgetGroup>
 
-          <!-- Independent BeatGrid button: explicit images avoid dependence on QSS object-name rules. -->
-          <PushButton>
-            <TooltipId>show_beatgrid_controls</TooltipId>
-            <ObjectName>BeatgridControlsToggleTest</ObjectName>
-            <Size>26f,52f</Size>
-            <NumberStates>2</NumberStates>
-            <RightClickIsPushButton>false</RightClickIsPushButton>
-            <State>
-              <Number>0</Number>
-              <Unpressed scalemode="STRETCH">skins:LateNight/classic/buttons/btn__beatgrid_controls_expand.svg</Unpressed>
-              <Pressed scalemode="STRETCH">skins:LateNight/classic/buttons/btn__beatgrid_controls_collapse.svg</Pressed>
-            </State>
-            <State>
-              <Number>1</Number>
-              <Unpressed scalemode="STRETCH">skins:LateNight/classic/buttons/btn__beatgrid_controls_expand.svg</Unpressed>
-              <Pressed scalemode="STRETCH">skins:LateNight/classic/buttons/btn__beatgrid_controls_collapse.svg</Pressed>
-            </State>
-            <Connection>
-              <ConfigKey persist="true">[Skin],show_beatgrid_controls</ConfigKey>
-              <ButtonState>LeftButton</ButtonState>
-            </Connection>
-          </PushButton>
+          <!-- Second BeatGrid button: use the exact same stock skin object name and template. -->
+          <Template src="skins:LateNight/controls/button_2state_persist.xml">
+            <SetVariable name="TooltipId">show_beatgrid_controls</SetVariable>
+            <SetVariable name="ObjectName">BeatgridControlsToggle</SetVariable>
+            <SetVariable name="Size">26f,52f</SetVariable>
+            <SetVariable name="BtnSize"></SetVariable>
+            <SetVariable name="ConfigKey">[Skin],show_beatgrid_controls</SetVariable>
+          </Template>
 
           <WidgetGroup><Size>1f,1min</Size></WidgetGroup>
 
