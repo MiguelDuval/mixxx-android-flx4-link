@@ -1,0 +1,118 @@
+name: One-time BitGrid layout fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Move BitGrid controls before overflowing toolbar items
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml')
+          text = path.read_text(encoding='utf-8')
+
+          block = '''            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                // BitGrid 1 - Opens Deck 1 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid1Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 1"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid1Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid1Popup
+                    popupAnchor: bitgrid1Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+
+                // BitGrid 2 - Opens Deck 2 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid2Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 2"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid2Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid2Popup
+                    popupAnchor: bitgrid2Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+            }
+'''
+
+          if text.count(block) != 1:
+              raise SystemExit(f'Expected exactly one BitGrid toolbar block, found {text.count(block)}')
+
+          text = text.replace(block, '', 1)
+
+          anchor = '''        LateNightToolbarMenuButton {
+            id: appMenuButton
+
+            popup: appMenuPopup
+            visible: Qt.platform.os !== "osx"
+
+            onClicked: {
+                root.openPopupForButton(appMenuPopup, this);
+            }
+        }
+'''
+
+          if anchor not in text:
+              raise SystemExit('Toolbar app-menu anchor not found')
+
+          text = text.replace(anchor, anchor + block, 1)
+          path.write_text(text, encoding='utf-8')
+
+      - name: Validate placement
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml').read_text(encoding='utf-8')
+          a = p.index('id: appMenuButton')
+          b = p.index('id: bitgrid1Button')
+          c = p.index('id: maximizeLibraryButton')
+          assert a < b < c, (a, b, c)
+          print('BitGrid buttons are before BIG LIBRARY and therefore inside the visible leading toolbar area.')
+          PY
+
+      - name: Commit and remove this one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/skins/LateNightQML/Toolbar/Toolbar.qml
+          git rm .github/workflows/one-time-bitgrid-layout-fix.yml
+          git commit -m "Fix BitGrid: keep deck controls visible on Android toolbar"
+          git push
