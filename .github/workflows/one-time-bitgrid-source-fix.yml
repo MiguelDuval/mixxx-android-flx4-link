@@ -1,0 +1,178 @@
+name: One-time BitGrid source fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Patch FullDeck and Toolbar
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # 1. Make the visible FullDeck BEATGRID button deck-local.
+          full = Path('res/skins/LateNightQML/Deck/FullDeck.qml')
+          text = full.read_text(encoding='utf-8')
+          old_proxy = '''    // Global beatgrid visibility (from toolbar) - syncs to local state
+    Mixxx.ControlProxy {
+        id: showBeatgridControlsProxy
+        group: "[Skin]"
+        key: "show_beatgrid_controls"
+
+        onValueChanged: {
+            root.showBeatgridControlsLocal = value > 0
+        }
+    }
+    
+'''
+          if old_proxy not in text:
+              raise SystemExit('FullDeck global beatgrid proxy block not found')
+          text = text.replace(old_proxy, '', 1)
+          old_handler = '''                        onTapped: {
+                            showBeatgridControlsProxy.value = root.showBeatgridControls ? 0.0 : 1.0;
+                        }
+'''
+          new_handler = '''                        onTapped: {
+                            root.showBeatgridControlsLocal = !root.showBeatgridControlsLocal;
+                        }
+'''
+          if text.count(old_handler) != 1:
+              raise SystemExit(f'Expected one FullDeck beatgrid handler, found {text.count(old_handler)}')
+          text = text.replace(old_handler, new_handler, 1)
+          text = text.replace('    // Per-deck beatgrid visibility - local state for deck isolation\n    // Synced with global [Skin] show_beatgrid_controls for toolbar compatibility\n',
+                              '    // Per-deck beatgrid visibility. This state is intentionally local to each deck.\n', 1)
+          full.write_text(text, encoding='utf-8')
+
+          # 2. Move compact BitGrid 1/2 controls to the beginning of Toolbar,
+          #    before the fixed-width controls can overflow on Android.
+          toolbar = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml')
+          t = toolbar.read_text(encoding='utf-8')
+          old_block = '''            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                // BitGrid 1 - Opens Deck 1 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid1Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 1"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid1Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid1Popup
+                    popupAnchor: bitgrid1Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+
+                // BitGrid 2 - Opens Deck 2 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid2Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 2"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid2Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid2Popup
+                    popupAnchor: bitgrid2Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+            }
+'''
+          if t.count(old_block) != 1:
+              raise SystemExit(f'Expected one Toolbar BitGrid block, found {t.count(old_block)}')
+          t = t.replace(old_block, '', 1)
+          new_block = '''        RowLayout {
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 1
+
+            LateNightToolbarButton {
+                id: bitgrid1Button
+
+                buttonWidth: 58
+                text: "BitGrid 1"
+
+                onActivated: {
+                    root.openPopupForButton(bitgrid1Popup, this);
+                }
+            }
+            LateNightToolbarButton {
+                id: bitgrid2Button
+
+                buttonWidth: 58
+                text: "BitGrid 2"
+
+                onActivated: {
+                    root.openPopupForButton(bitgrid2Popup, this);
+                }
+            }
+        }
+'''
+          anchor = '''        LateNightToolbarMenuButton {
+            id: appMenuButton
+
+            popup: appMenuPopup
+            visible: Qt.platform.os !== "osx"
+
+            onClicked: {
+                root.openPopupForButton(appMenuPopup, this);
+            }
+        }
+'''
+          if anchor not in t:
+              raise SystemExit('Toolbar app-menu anchor not found')
+          t = t.replace(anchor, anchor + new_block, 1)
+          toolbar.write_text(t, encoding='utf-8')
+          PY
+
+      - name: Validate source patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          full = Path('res/skins/LateNightQML/Deck/FullDeck.qml').read_text(encoding='utf-8')
+          toolbar = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml').read_text(encoding='utf-8')
+          assert 'showBeatgridControlsProxy' not in full
+          assert 'root.showBeatgridControlsLocal = !root.showBeatgridControlsLocal;' in full
+          assert toolbar.index('id: appMenuButton') < toolbar.index('id: bitgrid1Button') < toolbar.index('id: maximizeLibraryButton')
+          assert toolbar.count('id: bitgrid1Button') == 1
+          assert toolbar.count('id: bitgrid2Button') == 1
+          print('Validated deck-local BEATGRID and visible compact BitGrid 1/2 controls.')
+          PY
+
+      - name: Commit patch and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/skins/LateNightQML/Deck/FullDeck.qml res/skins/LateNightQML/Toolbar/Toolbar.qml
+          git rm .github/workflows/one-time-bitgrid-source-fix.yml
+          git rm .bitgrid-source-fix-trigger
+          git commit -m "Fix BitGrid: make deck button local and expose toolbar controls"
+          git push
