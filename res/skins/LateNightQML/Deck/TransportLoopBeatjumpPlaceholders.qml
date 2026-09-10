@@ -160,9 +160,8 @@ Item {
             Layout.preferredWidth: 4
         }
 
-        // Per-deck BeatGrid visibility toggle
-        // Toggles the local showBeatgridControlsLocal property in parent FullDeck
-        // Also syncs with global [Skin] show_beatgrid_controls for toolbar compatibility
+        // Per-deck BeatGrid visibility toggle. The state belongs only to the
+        // enclosing FullDeck; there is deliberately no [Skin] bridge here.
         LateNightControlButton {
             Layout.preferredWidth: 68
             Layout.preferredHeight: 26
@@ -174,8 +173,8 @@ Item {
             activeOpacity: 1.0
             inactiveOpacity: 0.82
             activeColor: LateNightTheme.activePlayCueColor
-            
-            // Visual state reflects the parent FullDeck's local beatgrid visibility
+
+            // Visual state reflects the parent FullDeck's local beatgrid visibility.
             property bool checked: {
                 var p = parent;
                 while (p && p.showBeatgridControlsLocal === undefined) {
@@ -183,20 +182,15 @@ Item {
                 }
                 return p ? p.showBeatgridControlsLocal : false;
             }
-            
+
             onClicked: {
-                // Find parent FullDeck with showBeatgridControlsLocal
+                // Find parent FullDeck with showBeatgridControlsLocal.
                 var fullDeck = parent;
                 while (fullDeck && fullDeck.showBeatgridControlsLocal === undefined) {
                     fullDeck = fullDeck.parent;
                 }
                 if (fullDeck) {
                     fullDeck.showBeatgridControlsLocal = !fullDeck.showBeatgridControlsLocal;
-                    // Also sync global toolbar state
-                    var globalProxy = Qt.createQmlObject('import Mixxx 1.0 as Mixxx; Mixxx.ControlProxy { group: "[Skin]"; key: "show_beatgrid_controls" }', root);
-                    if (globalProxy) {
-                        globalProxy.value = fullDeck.showBeatgridControlsLocal ? 1.0 : 0.0;
-                    }
                 }
             }
         }
