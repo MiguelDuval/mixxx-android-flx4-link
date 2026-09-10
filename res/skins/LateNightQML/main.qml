@@ -2,6 +2,7 @@ import Mixxx 1.0 as Mixxx
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
+import "LateNightTheme"
 
 ApplicationWindow {
     id: root
@@ -15,6 +16,18 @@ ApplicationWindow {
     minimumWidth: 1280
     visible: true
     width: 1792
+
+    Mixxx.ControlProxy {
+        id: bitgrid1Action
+        group: "[Channel1]"
+        key: "beats_translate_curpos"
+    }
+
+    Mixxx.ControlProxy {
+        id: bitgrid2Action
+        group: "[Channel2]"
+        key: "beats_translate_curpos"
+    }
 
     function updateVisibility() {
         if (!Mixxx.Core.ready) {
@@ -71,6 +84,81 @@ ApplicationWindow {
             MainWindow {
                 applicationWindow: root
                 anchors.fill: parent
+            }
+        }
+    }
+
+    // Dedicated BeatGrid test strip.
+    // It lives outside the toolbar's width-constrained RowLayout so the two
+    // controls remain visible even on narrow Android screens.
+    Rectangle {
+        id: bitgridBar
+
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.topMargin: 27
+        color: LateNightTheme.toolbarRootBackgroundColor
+        height: 34
+        width: 190
+        z: 10000
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: 4
+            spacing: 4
+
+            Rectangle {
+                id: bitgrid1Button
+
+                color: bitgrid1MouseArea.pressed ? LateNightTheme.toolbarButtonActiveBackgroundColor : LateNightTheme.toolbarButtonInactiveBackgroundColor
+                height: parent.height
+                radius: 2
+                width: 89
+
+                Text {
+                    anchors.fill: parent
+                    color: LateNightTheme.toolbarButtonInactiveTextColor
+                    font.family: "Open Sans"
+                    font.pixelSize: 12
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "BITGRID 1"
+                }
+
+                MouseArea {
+                    id: bitgrid1MouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: bitgrid1Action.trigger()
+                }
+            }
+
+            Rectangle {
+                id: bitgrid2Button
+
+                color: bitgrid2MouseArea.pressed ? LateNightTheme.toolbarButtonActiveBackgroundColor : LateNightTheme.toolbarButtonInactiveBackgroundColor
+                height: parent.height
+                radius: 2
+                width: 89
+
+                Text {
+                    anchors.fill: parent
+                    color: LateNightTheme.toolbarButtonInactiveTextColor
+                    font.family: "Open Sans"
+                    font.pixelSize: 12
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "BITGRID 2"
+                }
+
+                MouseArea {
+                    id: bitgrid2MouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: bitgrid2Action.trigger()
+                }
             }
         }
     }
