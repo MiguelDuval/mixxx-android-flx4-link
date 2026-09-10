@@ -220,4 +220,188 @@ Controls.Panel {
     }
 
     Mixxx.PlayerDropArea { anchors.fill: parent; group: root.group }
+
+    // ================================================================
+    // PHASE 1: DIAGNOSTIC OVERLAY
+    // Independent of any BeatGrid layout, clipping, or skin state.
+    // ================================================================
+    Item {
+        id: beatgridDiagnosticOverlay
+        anchors.fill: parent
+        clip: false
+        z: 10000
+
+        property string buildMarker: "BG-DIAG " + Qt.formatDateTime(new Date(), "yyyy-MM-dd-HH-mm-ss")
+
+        // Build marker text
+        Text {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.margins: 10
+            text: beatgridDiagnosticOverlay.buildMarker
+            color: "#FF00FF"
+            font.bold: true
+            font.pixelSize: 12
+            z: 10002
+        }
+    }
+
+    // ================================================================
+    // CHANNEL 1 DIAGNOSTIC BLOCK
+    // ================================================================
+    Item {
+        id: diagChannel1
+        width: 140
+        height: 48
+        x: 6
+        y: 6
+        z: 10001
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#FF0000"
+            border.color: "#FFFFFF"
+            border.width: 3
+            radius: 4
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: "CHANNEL1\nBITGRID 1 TEST"
+            color: "#FFFFFF"
+            font.bold: true
+            font.pixelSize: 11
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+        }
+
+        Text {
+            anchors.top: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: beatgridDiagnosticOverlay.buildMarker
+            color: "#FFFF00"
+            font.bold: true
+            font.pixelSize: 9
+        }
+    }
+
+    // ================================================================
+    // CHANNEL 2 DIAGNOSTIC BLOCK
+    // ================================================================
+    Item {
+        id: diagChannel2
+        width: 140
+        height: 48
+        x: 6
+        y: 60
+        z: 10001
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#0000FF"
+            border.color: "#FFFFFF"
+            border.width: 3
+            radius: 4
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: "CHANNEL2\nBITGRID 2 TEST"
+            color: "#FFFFFF"
+            font.bold: true
+            font.pixelSize: 11
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+        }
+
+        Text {
+            anchors.top: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: beatgridDiagnosticOverlay.buildMarker
+            color: "#FFFF00"
+            font.bold: true
+            font.pixelSize: 9
+        }
+    }
+
+    // ================================================================
+    // TOUCH TEST - Independent of Mixxx controls
+    // ================================================================
+    Item {
+        id: touchTestItem
+        width: 140
+        height: 48
+        x: 6
+        y: 114
+        z: 10001
+
+        property bool touched: false
+
+        Rectangle {
+            id: touchRect
+            anchors.fill: parent
+            color: touched ? "#00FF00" : "#FFFF00"
+            border.color: "#000000"
+            border.width: 2
+            radius: 4
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: "TOUCH TEST\n" + (touched ? "TOUCHED!" : "PRESS ME")
+            color: "#000000"
+            font.bold: true
+            font.pixelSize: 11
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onPressed: { touchTestItem.touched = true }
+            onReleased: { touchTestItem.touched = false }
+        }
+    }
+
+    // ================================================================
+    // ALIGN TEST - Uses real Mixxx control path
+    // ================================================================
+    Item {
+        id: alignTestItem
+        width: 140
+        height: 48
+        x: 6
+        y: 168
+        z: 10001
+
+        LateNightControlButton {
+            anchors.fill: parent
+            group: root.group
+            key: "beats_translate_curpos"
+            toggleable: false
+            backgroundSource: LateNightTheme.lateNightSubRegionButton("medium")
+            iconSource: LateNightTheme.assetDeckBeatCurposLargeButton
+            activeBackgroundSuffix: "active"
+            pressedBackgroundSuffix: "active"
+            activeOpacity: 1.0
+            inactiveOpacity: 0.82
+            activeColor: LateNightTheme.activePlayCueColor
+            inactiveColor: LateNightTheme.deckDimButtonInactiveColor
+
+            // Label to identify it
+            Text {
+                anchors.bottom: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "ALIGN TEST\n(" + root.group + ")"
+                color: "#FF00FF"
+                font.bold: true
+                font.pixelSize: 9
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+    }
+
 }
