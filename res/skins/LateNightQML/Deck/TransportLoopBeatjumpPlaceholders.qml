@@ -29,6 +29,14 @@ Item {
         key: "beatjump_size"
     }
 
+    // Real per-deck BeatGrid action. This is the actual Mixxx control used to
+    // translate the beatgrid so the current playposition becomes a beat.
+    Mixxx.ControlProxy {
+        id: beatgridCurPosProxy
+        group: root.group
+        key: "beats_translate_curpos"
+    }
+
     function beatSizeText(value) {
         if (value >= 1) {
             return value.toFixed(0);
@@ -160,8 +168,7 @@ Item {
             Layout.preferredWidth: 4
         }
 
-        // Per-deck BeatGrid visibility toggle. The state belongs only to the
-        // enclosing FullDeck; there is deliberately no [Skin] bridge here.
+        // Per-deck BeatGrid visibility toggle.
         LateNightControlButton {
             Layout.preferredWidth: 68
             Layout.preferredHeight: 26
@@ -174,7 +181,6 @@ Item {
             inactiveOpacity: 0.82
             activeColor: LateNightTheme.activePlayCueColor
 
-            // Visual state reflects the parent FullDeck's local beatgrid visibility.
             property bool checked: {
                 var p = parent;
                 while (p && p.showBeatgridControlsLocal === undefined) {
@@ -184,13 +190,65 @@ Item {
             }
 
             onClicked: {
-                // Find parent FullDeck with showBeatgridControlsLocal.
                 var fullDeck = parent;
                 while (fullDeck && fullDeck.showBeatgridControlsLocal === undefined) {
                     fullDeck = fullDeck.parent;
                 }
                 if (fullDeck) {
                     fullDeck.showBeatgridControlsLocal = !fullDeck.showBeatgridControlsLocal;
+                }
+            }
+        }
+
+        // Real BitGrid action button. It is deliberately deck-local and uses
+        // the actual [ChannelN]beats_translate_curpos control.
+        Item {
+            id: bitgridActionButton
+
+            Layout.preferredWidth: 68
+            Layout.minimumWidth: 68
+            Layout.maximumWidth: 68
+            Layout.preferredHeight: 26
+            Layout.minimumHeight: 26
+            Layout.maximumHeight: 26
+            Layout.alignment: Qt.AlignVCenter
+            z: 20
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 2
+                color: LateNightTheme.deckEmbeddedButtonInactiveColor
+                border.width: 1
+                border.color: LateNightTheme.deckPanelBorderLight
+            }
+
+            Text {
+                anchors.fill: parent
+                text: root.group === "[Channel1]" ? "BITGRID 1" :
+                      root.group === "[Channel2]" ? "BITGRID 2" : "BITGRID"
+                color: LateNightTheme.primaryDeckTextColor
+                font.family: "Open Sans"
+                font.pixelSize: 8
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            TapHandler {
+                acceptedButtons: Qt.LeftButton
+                onTapped: {
+                    // Momentary action: translate this deck's BeatGrid to the
+                    // current playposition, then reveal the real editor locally.
+                    beatgridCurPosProxy.value = 1.0;
+                    beatgridCurPosProxy.value = 0.0;
+
+                    var fullDeck = parent;
+                    while (fullDeck && fullDeck.showBeatgridControlsLocal === undefined) {
+                        fullDeck = fullDeck.parent;
+                    }
+                    if (fullDeck) {
+                        fullDeck.showBeatgridControlsLocal = true;
+                    }
                 }
             }
         }
