@@ -841,7 +841,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: -2
 
-                // BitGrid 1 - Controls Deck 1
+                // BitGrid 1 - Opens Deck 1 BeatGrid panel
                 LateNightToolbarButton {
                     id: bitgrid1Button
 
@@ -849,12 +849,11 @@ Rectangle {
                     text: "BitGrid 1"
 
                     onActivated: {
-                        bitgrid1Action.value = 1.0;
-                        bitgrid1Action.value = 0.0;
+                        root.openPopupForButton(bitgrid1Popup, this);
                     }
                 }
                 LateNightToolbarDropButton {
-                    popup: bitgrid1SettingsPopup
+                    popup: bitgrid1Popup
                     popupAnchor: bitgrid1Button
 
                     onClicked: {
@@ -862,7 +861,7 @@ Rectangle {
                     }
                 }
 
-                // BitGrid 2 - Controls Deck 2
+                // BitGrid 2 - Opens Deck 2 BeatGrid panel
                 LateNightToolbarButton {
                     id: bitgrid2Button
 
@@ -870,12 +869,11 @@ Rectangle {
                     text: "BitGrid 2"
 
                     onActivated: {
-                        bitgrid2Action.value = 1.0;
-                        bitgrid2Action.value = 0.0;
+                        root.openPopupForButton(bitgrid2Popup, this);
                     }
                 }
                 LateNightToolbarDropButton {
-                    popup: bitgrid2SettingsPopup
+                    popup: bitgrid2Popup
                     popupAnchor: bitgrid2Button
 
                     onClicked: {
@@ -1623,7 +1621,48 @@ Rectangle {
             }
         }
     }
-    ToolbarSettingsPopup {
+    ToolBarSettingsPopup {
+        id: bitgrid1Popup
+
+        property string deckGroup: "[Channel1]"
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.bottomMargin: 7
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            Layout.topMargin: 2
+            spacing: 0
+
+            BeatgridControls {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                group: parent.deckGroup
+            }
+        }
+    }
+
+    ToolBarSettingsPopup {
+        id: bitgrid2Popup
+
+        property string deckGroup: "[Channel2]"
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.bottomMargin: 7
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            Layout.topMargin: 2
+            spacing: 0
+
+            BeatgridControls {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                group: parent.deckGroup
+            }
+        }
+    }
+    ToolBarSettingsPopup {
         id: effectSettingsPopup
 
         minimumWidth: 185
