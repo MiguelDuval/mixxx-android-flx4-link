@@ -25,9 +25,8 @@ Controls.Panel {
     readonly property bool showRateControls: showRateControlsProxy.value > 0
     readonly property bool showSmallSpinnyOrCover: selectBigSpinnyProxy.value <= 0 && !root.minimized
     readonly property bool showVinylControls: showVinylControlsProxy.value > 0
-    
-    // Per-deck beatgrid visibility - local state for deck isolation
-    // Synced with global [Skin] show_beatgrid_controls for toolbar compatibility
+
+    // BeatGrid visibility is local to this deck. Do not synchronize it through [Skin].
     property bool showBeatgridControlsLocal: false
     readonly property bool showBeatgridControls: showBeatgridControlsLocal
     readonly property int beatgridControlsWidth: timingShiftButtonsProxy.value > 0 ? 130 : 104
@@ -102,17 +101,6 @@ Controls.Panel {
         key: "show_rate_control_buttons"
     }
 
-    // Global beatgrid visibility (from toolbar) - syncs to local state
-    Mixxx.ControlProxy {
-        id: showBeatgridControlsProxy
-        group: "[Skin]"
-        key: "show_beatgrid_controls"
-
-        onValueChanged: {
-            root.showBeatgridControlsLocal = value > 0
-        }
-    }
-    
     Mixxx.ControlProxy {
         id: timingShiftButtonsProxy
         group: "[Skin]"
@@ -263,7 +251,7 @@ Controls.Panel {
                     TapHandler {
                         acceptedButtons: Qt.LeftButton
                         onTapped: {
-                            showBeatgridControlsProxy.value = root.showBeatgridControls ? 0.0 : 1.0;
+                            root.showBeatgridControlsLocal = !root.showBeatgridControlsLocal;
                         }
                     }
                 }
