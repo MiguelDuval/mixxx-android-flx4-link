@@ -25,8 +25,11 @@ Controls.Panel {
     readonly property bool showRateControls: showRateControlsProxy.value > 0
     readonly property bool showSmallSpinnyOrCover: selectBigSpinnyProxy.value <= 0 && !root.minimized
     readonly property bool showVinylControls: showVinylControlsProxy.value > 0
-    readonly property bool showBeatgridControls: showBeatgridControlsLocal
+    
+    // Per-deck beatgrid visibility - local state for deck isolation
+    // Synced with global [Skin] show_beatgrid_controls for toolbar compatibility
     property bool showBeatgridControlsLocal: false
+    readonly property bool showBeatgridControls: showBeatgridControlsLocal
     readonly property int beatgridControlsWidth: timingShiftButtonsProxy.value > 0 ? 130 : 104
 
     signal toggleFocus
@@ -99,20 +102,17 @@ Controls.Panel {
         key: "show_rate_control_buttons"
     }
 
+    // Global beatgrid visibility (from toolbar) - syncs to local state
     Mixxx.ControlProxy {
         id: showBeatgridControlsProxy
         group: "[Skin]"
-        key: "show_beatgrid_controls"
-    }
-    Mixxx.ControlProxy {
-        id: showBeatgridControlsDeckProxy
-        group: root.group
         key: "show_beatgrid_controls"
 
         onValueChanged: {
             root.showBeatgridControlsLocal = value > 0
         }
     }
+    
     Mixxx.ControlProxy {
         id: timingShiftButtonsProxy
         group: "[Skin]"

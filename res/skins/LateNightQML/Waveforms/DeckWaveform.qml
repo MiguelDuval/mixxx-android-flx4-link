@@ -12,11 +12,8 @@ Item {
     readonly property real beatgridControlsWidth: beatgridControls.width
     readonly property bool beatgridControlsVisible: beatgridControls.visible
 
-    Mixxx.ControlProxy {
-        id: showBeatgridControlsProxy
-        group: "[Skin]"
-        key: "show_beatgrid_controls"
-    }
+    // Access per-deck beatgrid visibility from parent FullDeck
+    readonly property bool showBeatgridControls: root.showBeatgridControls
 
     LateNightWaveformDisplay {
         id: waveformDisplay
@@ -33,7 +30,7 @@ Item {
         anchors.rightMargin: 26
         anchors.top: parent.top
         group: root.group
-        visible: showBeatgridControlsProxy.value > 0
+        visible: root.showBeatgridControls
         width: Math.min(implicitWidth, Math.max(0, parent.width - 26))
         z: 1
     }

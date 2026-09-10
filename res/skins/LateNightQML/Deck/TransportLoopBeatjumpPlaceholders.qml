@@ -160,7 +160,8 @@ Item {
             Layout.preferredWidth: 4
         }
 
-        // BeatGrid toggle button (shows/hides the beatgrid controls panel)
+        // Per-deck BeatGrid visibility toggle
+        // Uses a deck-specific ControlProxy to control beatgrid visibility locally
         LateNightControlButton {
             Layout.preferredWidth: 68
             Layout.preferredHeight: 26
@@ -174,19 +175,6 @@ Item {
             activeOpacity: 1.0
             inactiveOpacity: 0.82
             activeColor: LateNightTheme.activePlayCueColor
-        }
-
-        Item {
-            Layout.preferredWidth: 4
-        }
-
-        // Independent BeatGrid action button - directly triggers beatgrid functionality
-        // This bypasses the UI visibility toggle and directly calls real beatgrid operations
-        DeckComponents.IndependentBeatGridButton {
-            group: root.group
-            beatgridAction: "beats_translate_curpos"  // Move beatgrid to current play position
-            buttonWidth: 68
-            buttonHeight: 26
         }
 
         Item {
