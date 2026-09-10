@@ -1669,11 +1669,15 @@ void EngineBuffer::collectFeatures(GroupFeatureState* pGroupFeatures) const {
 }
 
 void EngineBuffer::slotUpdatedTrackBeats() {
+    qDebug() << "[BeatGridDiag] EngineBuffer::slotUpdatedTrackBeats called";
     TrackPointer pTrack = m_pCurrentTrack;
     if (pTrack) {
+        qDebug() << "[BeatGridDiag] EngineBuffer::slotUpdatedTrackBeats - track has beats, notifying" << m_engineControls.size() << "controls";
         for (const auto& pControl : std::as_const(m_engineControls)) {
             pControl->trackBeatsUpdated(pTrack->getBeats());
         }
+    } else {
+        qWarning() << "[BeatGridDiag] EngineBuffer::slotUpdatedTrackBeats - NO CURRENT TRACK";
     }
 }
 

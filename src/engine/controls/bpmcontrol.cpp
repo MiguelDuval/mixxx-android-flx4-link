@@ -292,31 +292,40 @@ mixxx::Bpm BpmControl::getBpm() const {
 }
 
 void BpmControl::adjustBeatsBpm(double deltaBpm) {
+    qDebug() << "[BeatGridDiag] BpmControl::adjustBeatsBpm called with deltaBpm=" << deltaBpm;
     const TrackPointer pTrack = getEngineBuffer()->getLoadedTrack();
     if (!pTrack) {
+        qWarning() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - NO TRACK LOADED";
         return;
     }
     const mixxx::BeatsPointer pBeats = pTrack->getBeats();
     if (!pBeats) {
+        qWarning() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - NO BEATS ON TRACK";
         return;
     }
 
     const mixxx::Bpm bpm = pBeats->getBpmInRange(
             mixxx::audio::kStartFramePos, frameInfo().trackEndPosition);
     if (!bpm.isValid()) {
+        qWarning() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - INVALID BPM";
         return;
     }
+    qDebug() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - current BPM=" << bpm.value() << "delta=" << deltaBpm;
     const auto centerBpm = mixxx::Bpm(math_max(kBpmAdjustMin, bpm.value() + deltaBpm));
     mixxx::Bpm adjustedBpm = BeatUtils::roundBpmWithinRange(
             centerBpm - kBpmAdjustStep / 2, centerBpm, centerBpm + kBpmAdjustStep / 2);
+    qDebug() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - adjusted BPM=" << adjustedBpm.value();
     const auto newBeats = pBeats->trySetBpm(adjustedBpm);
     if (!newBeats) {
+        qWarning() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - trySetBpm returned null";
         return;
     }
+    qDebug() << "[BeatGridDiag] BpmControl::adjustBeatsBpm - calling trySetBeats on track";
     pTrack->trySetBeats(*newBeats);
 }
 
 void BpmControl::slotAdjustBeatsFaster(double v) {
+    qDebug() << "[BeatGridDiag] BpmControl::slotAdjustBeatsFaster called with v=" << v;
     if (v <= 0) {
         return;
     }
@@ -324,6 +333,7 @@ void BpmControl::slotAdjustBeatsFaster(double v) {
 }
 
 void BpmControl::slotAdjustBeatsSlower(double v) {
+    qDebug() << "[BeatGridDiag] BpmControl::slotAdjustBeatsSlower called with v=" << v;
     if (v <= 0) {
         return;
     }
@@ -331,6 +341,7 @@ void BpmControl::slotAdjustBeatsSlower(double v) {
 }
 
 void BpmControl::slotTranslateBeatsEarlier(double v) {
+    qDebug() << "[BeatGridDiag] BpmControl::slotTranslateBeatsEarlier called with v=" << v;
     if (v <= 0) {
         return;
     }
@@ -338,6 +349,7 @@ void BpmControl::slotTranslateBeatsEarlier(double v) {
 }
 
 void BpmControl::slotTranslateBeatsLater(double v) {
+    qDebug() << "[BeatGridDiag] BpmControl::slotTranslateBeatsLater called with v=" << v;
     if (v <= 0) {
         return;
     }

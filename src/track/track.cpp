@@ -465,10 +465,9 @@ bool Track::setBeatsWhileLocked(mixxx::BeatsPointer pBeats) {
 bool Track::trySetBeatsWhileLocked(
         mixxx::BeatsPointer pBeats,
         bool lockBpmAfterSet) {
+    qDebug() << "[BeatGridDiag] Track::trySetBeatsWhileLocked called, BPM locked=" << m_record.getBpmLocked();
     if (m_record.getBpmLocked()) {
-        // The BPM is locked, so the beatgrid must not be changed - regardless
-        // of whether one currently exists.
-        qDebug() << "Track is BPM-locked. Discarding new beats";
+        qWarning() << "[BeatGridDiag] Track::trySetBeatsWhileLocked - BPM LOCKED, discarding beats";
         return false;
     }
 
@@ -479,6 +478,7 @@ bool Track::trySetBeatsWhileLocked(
     if (compareAndSet(m_record.ptrBpmLocked(), lockBpmAfterSet)) {
         dirty = true;
     }
+    qDebug() << "[BeatGridDiag] Track::trySetBeatsWhileLocked - dirty=" << dirty;
     return dirty;
 }
 
@@ -486,13 +486,16 @@ bool Track::trySetBeatsMarkDirtyAndUnlock(
         QT_RECURSIVE_MUTEX_LOCKER* pLock,
         mixxx::BeatsPointer pBeats,
         bool lockBpmAfterSet) {
+    qDebug() << "[BeatGridDiag] Track::trySetBeatsMarkDirtyAndUnlock called";
     DEBUG_ASSERT(pLock);
 
     if (!trySetBeatsWhileLocked(pBeats, lockBpmAfterSet)) {
+        qWarning() << "[BeatGridDiag] Track::trySetBeatsMarkDirtyAndUnlock - trySetBeatsWhileLocked returned false";
         return false;
     }
 
     afterBeatsAndBpmUpdated(pLock);
+    qDebug() << "[BeatGridDiag] Track::trySetBeatsMarkDirtyAndUnlock - afterBeatsAndBpmUpdated called";
     return true;
 }
 
@@ -515,6 +518,7 @@ void Track::undoBeatsChange() {
 
 void Track::afterBeatsAndBpmUpdated(
         QT_RECURSIVE_MUTEX_LOCKER* pLock) {
+    qDebug() << "[BeatGridDiag] Track::afterBeatsAndBpmUpdated called";
     DEBUG_ASSERT(pLock);
 
     markDirtyAndUnlock(pLock);
@@ -522,6 +526,7 @@ void Track::afterBeatsAndBpmUpdated(
 }
 
 void Track::emitBeatsAndBpmUpdated() {
+    qDebug() << "[BeatGridDiag] Track::emitBeatsAndBpmUpdated - emitting bpmChanged and beatsUpdated";
     emit bpmChanged();
     emit beatsUpdated();
 }

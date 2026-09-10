@@ -123,29 +123,40 @@ mixxx::control::ButtonMode QmlSkinControlCreator::toControlButtonMode(
 
 void QmlSkinControlCreator::createControl(bool allowBeforeComponentComplete) {
     if (!m_isComponentComplete && !allowBeforeComponentComplete) {
+        qDebug() << "[BeatGridDiag] SkinControlCreator: deferred creation (not complete)"
+                 << m_key.group << m_key.item;
         return;
     }
     m_pControl.reset();
 
     if (!m_key.isValid()) {
+        qWarning() << "[BeatGridDiag] SkinControlCreator: invalid key" << m_key.group << m_key.item;
         return;
     }
     if (m_key.group != kSkinGroup) {
-        qWarning() << "QmlSkinControlCreator: Cannot create non-skin control"
+        qWarning() << "[BeatGridDiag] SkinControlCreator: Cannot create non-skin control"
                    << m_key.group << m_key.item;
         return;
     }
     if (ControlObject::exists(m_key)) {
-        qWarning() << "QmlSkinControlCreator: Cannot create already existing skin control"
+        qWarning() << "[BeatGridDiag] SkinControlCreator: Already exists"
                    << m_key.group << m_key.item;
         return;
     }
+
+    qDebug() << "[BeatGridDiag] SkinControlCreator: CREATING control"
+             << m_key.group << m_key.item
+             << "persist=" << m_persist << "default=" << m_defaultValue
+             << "mode=" << static_cast<int>(m_buttonMode);
 
     m_pControl = std::make_unique<ControlPushButton>(
             m_key,
             m_persist,
             m_defaultValue);
     m_pControl->setButtonMode(toControlButtonMode(m_buttonMode));
+
+    qDebug() << "[BeatGridDiag] SkinControlCreator: CREATED control"
+             << m_key.group << m_key.item;
 }
 
 void QmlSkinControlCreator::createDefaultControlBeforeComponentComplete() {

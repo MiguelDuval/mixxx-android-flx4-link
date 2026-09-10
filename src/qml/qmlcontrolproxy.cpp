@@ -115,25 +115,28 @@ void QmlControlProxy::reset() {
 void QmlControlProxy::reinitializeFromKey() {
     // Just ignore this if the component is still loading, because group or key may not be set yet.
     if (!m_isComponentComplete) {
+        qDebug() << "[BeatGridDiag] ControlProxy: deferred init (not complete)" << m_coKey.group << m_coKey.item;
         return;
     }
 
     // We don't need to reinitialize or reset the underlying control proxy if
     // the CO key didn't change.
     if (isInitialized() && m_coKey == m_pControlProxy->getKey()) {
+        qDebug() << "[BeatGridDiag] ControlProxy: already initialized, key unchanged" << m_coKey.group << m_coKey.item;
         return;
     }
 
     // If the key is invalid, reset the control proxy if necessary.
     if (!isKeyValid()) {
-        qWarning() << "QmlControlProxy: Tried to initialize CO" << m_coKey
-                   << " with invalid key, resetting...";
+        qWarning() << "[BeatGridDiag] ControlProxy: invalid key" << m_coKey.group << m_coKey.item;
         if (isInitialized()) {
             m_pControlProxy.reset();
             emit initializedChanged(false);
         }
         return;
     }
+
+    qDebug() << "[BeatGridDiag] ControlProxy: INITIALIZING" << m_coKey.group << m_coKey.item;
 
     // We don't need to warn here if the control is missing, because we'll do a
     // check below and print a warning anyway. If the key is invalid, we also don't
@@ -148,8 +151,7 @@ void QmlControlProxy::reinitializeFromKey() {
 
     // This should never happen, but it doesn't hurt to check.
     VERIFY_OR_DEBUG_ASSERT(pControlProxy != nullptr) {
-        qWarning() << "QmlControlProxy: Requested CO " << m_coKey
-                   << " returned nullptr, resetting...";
+        qWarning() << "[BeatGridDiag] ControlProxy: Requested CO returned nullptr" << m_coKey;
         if (isInitialized()) {
             m_pControlProxy.reset();
             emit initializedChanged(false);
@@ -159,7 +161,7 @@ void QmlControlProxy::reinitializeFromKey() {
 
     // If the control does not exist, reset the control proxy if necessary.
     if (!pControlProxy->valid()) {
-        qWarning() << "QmlControlProxy: Requested CO" << m_coKey << " does not exist, resetting...";
+        qWarning() << "[BeatGridDiag] ControlProxy: Requested CO does NOT EXIST" << m_coKey;
         if (isInitialized()) {
             m_pControlProxy.reset();
             emit initializedChanged(false);
@@ -171,6 +173,7 @@ void QmlControlProxy::reinitializeFromKey() {
     const bool wasInitialized = isInitialized();
     m_pControlProxy = std::move(pControlProxy);
     if (!wasInitialized) {
+        qDebug() << "[BeatGridDiag] ControlProxy: SUCCESSFULLY INITIALIZED" << m_coKey.group << m_coKey.item;
         emit initializedChanged(true);
     }
     m_pControlProxy->connectValueChanged(this, &QmlControlProxy::slotControlProxyValueChanged);
