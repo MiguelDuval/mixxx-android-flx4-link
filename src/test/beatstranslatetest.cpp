@@ -126,3 +126,68 @@ TEST_F(BeatsTranslateTest, BeatsUndoTest) {
     pBeats = m_pTrack1->getBeats();
     EXPECT_FRAMEPOS_EQ(origin123, pBeats->findClosestBeat(mixxx::audio::kStartFramePos));
 }
+
+TEST_F(BeatsTranslateTest, BeatsAdjustFasterSlowerTest) {
+    const auto bpm120 = mixxx::Bpm(120.0);
+    auto grid = mixxx::Beats::fromConstTempo(
+            m_pTrack1->getSampleRate(), mixxx::audio::kStartFramePos, bpm120);
+    m_pTrack1->trySetBeats(grid);
+
+    auto pBpm = std::make_unique<ControlProxy>(m_sGroup1, "bpm");
+    auto pBeatsAdjustFaster = std::make_unique<ControlProxy>(m_sGroup1, "beats_adjust_faster");
+    auto pBeatsAdjustSlower = std::make_unique<ControlProxy>(m_sGroup1, "beats_adjust_slower");
+    auto pBeatsUndo = std::make_unique<ControlProxy>(m_sGroup1, "beats_undo_adjustment");
+    pBpm->set(bpm120.value());
+
+    // Initial BPM should be 120
+    mixxx::BeatsPointer pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.0, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Press beats_adjust_faster once (+0.01 BPM)
+    pBeatsAdjustFaster->set(1.0);
+    pBeatsAdjustFaster->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.01, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Press beats_adjust_faster again (+0.01 BPM)
+    pBeatsAdjustFaster->set(1.0);
+    pBeatsAdjustFaster->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.02, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Press beats_adjust_slower once (-0.01 BPM)
+    pBeatsAdjustSlower->set(1.0);
+    pBeatsAdjustSlower->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.01, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Test undo - should go back to 120.02
+    pBeatsUndo->set(1.0);
+    pBeatsUndo->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.02, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Test undo again - should go back to 120.01
+    pBeatsUndo->set(1.0);
+    pBeatsUndo->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.01, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+
+    // Test undo again - should go back to 120.0
+    pBeatsUndo->set(1.0);
+    pBeatsUndo->set(0.0);
+    ProcessBuffer();
+
+    pBeats = m_pTrack1->getBeats();
+    EXPECT_NEAR(120.0, pBeats->getBpmInRange(mixxx::audio::kStartFramePos, mixxx::audio::FramePos(1000000)).value(), 0.01);
+}

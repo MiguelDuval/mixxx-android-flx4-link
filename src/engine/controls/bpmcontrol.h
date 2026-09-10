@@ -17,6 +17,29 @@ class ControlPushButton;
 /// BpmControl is an EngineControl that manages the bpm and beat distance of
 /// tracks.  It understands the tempo of the underlying track and the musical
 /// position of the playhead.
+///
+/// \section bpmcontrol_threading Threading Model
+///
+/// BpmControl operates in a multi-threaded environment:
+/// - \b Construction: Runs on the main (GUI) thread during EngineBuffer creation.
+/// - \b Control callbacks (slots): Connected via Qt::DirectConnection from
+///   ControlObject::valueChanged signals. These run on the thread that emits
+///   the signal (typically GUI thread for user interaction, but can be any thread).
+/// - \b Engine thread: The process() method runs on the dedicated audio engine thread.
+///   This is where updateBeatDistance(), updateLocalBpm(), and sync calculations happen.
+/// - \b Worker threads: trackLoaded() and trackBeatsUpdated() are called from
+///   EngineBuffer::notifyTrackLoaded() which runs on a worker thread (caching reader).
+///   These connect to Track::beatsUpdated via Qt::DirectConnection, so they execute
+///   on the worker thread.
+/// - \b Thread safety: m_pBeats is written from worker threads (trackLoaded,
+///   trackBeatsUpdated) and read from the engine thread (process). Access is
+///   serialized by EngineBuffer's single-threaded callback model - the engine
+///   thread and worker threads never run concurrently for the same EngineBuffer.
+///   ControlObject/ControlProxy handle cross-thread signal delivery to GUI.
+/// - \b Atomic members: m_dSyncTargetBeatDistance, m_dUserOffset use ControlValueAtomic
+///   for lock-free access across threads. m_resetSyncAdjustment uses QAtomicInt.
+/// - \b TapFilter: m_bpmTapFilter and m_tempoTapFilter are thread-safe for
+///   concurrent tap() calls from GUI/MIDI and tapped() signal emission.
 class BpmControl : public EngineControl {
     Q_OBJECT
 
