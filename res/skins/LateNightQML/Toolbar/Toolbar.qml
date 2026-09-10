@@ -422,6 +422,12 @@ Rectangle {
         key: "show_beatjump_controls"
     }
     Mixxx.ControlProxy {
+        id: showBeatgridControlsControl
+
+        group: "[Skin]"
+        key: "show_beatgrid_controls"
+    }
+    Mixxx.ControlProxy {
         id: showRateControlsControl
 
         group: "[Skin]"
@@ -822,6 +828,29 @@ Rectangle {
 
                     onActivated: {
                         showMicAuxControl.value = checked ? 1.0 : 0.0;
+                    }
+                }
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                LateNightToolbarButton {
+                    id: showBeatgridButton
+
+                    buttonWidth: 68
+                    text: "BEATGRID"
+
+                    onActivated: {
+                        showBeatgridControlsControl.value = checked ? 1.0 : 0.0;
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: waveformSettingsPopup
+                    popupAnchor: showBeatgridButton
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
                     }
                 }
             }
@@ -1519,6 +1548,11 @@ Rectangle {
                 control: equalWaveformHeightsControl
                 enabled: showWaveformsControl.value > 0
                 text: "Enforce equal heights"
+            }
+            ToolbarMenuToggle {
+                control: showBeatgridControlsControl
+                enabled: showWaveformsControl.value > 0
+                text: "Beatgrid Controls"
             }
         }
     }
