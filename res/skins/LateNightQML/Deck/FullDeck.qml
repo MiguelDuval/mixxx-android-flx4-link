@@ -212,8 +212,6 @@ Controls.Panel {
                     }
                 }
 
-                // Dedicated Android BeatGrid touch button. This is intentionally
-                // self-rendered and always present in the active QML deck.
                 Item {
                     id: beatgridToggle
                     Layout.preferredWidth: 58
@@ -290,7 +288,6 @@ Controls.Panel {
                 Layout.maximumHeight: root.minimized ? 68 : 122
                 spacing: 8
 
-                // Big Spinny/Cover Slot (Large mode)
                 SpinnyCoverSlot {
                     id: leftSpinnyBig
                     Layout.preferredHeight: 114
@@ -299,7 +296,6 @@ Controls.Panel {
                     visible: root.showBigSpinnyOrCover && !root.minimized
                 }
 
-                // Column containing Title rows and Overview row
                 ColumnLayout {
                     id: titleOverviewColumn
                     Layout.fillWidth: true
@@ -307,7 +303,6 @@ Controls.Panel {
                     Layout.preferredHeight: root.minimized ? 68 : 122
                     spacing: 2
 
-                    // Title, Time, Artist, Duration Rows
                     TitleTimeRows {
                         id: titleTimeRows
                         Layout.fillWidth: true
@@ -321,8 +316,6 @@ Controls.Panel {
                         }
                     }
 
-                    // Row containing Small Spinny (on the left of overview), waveform overview,
-                    // and the real BeatGrid editor when enabled.
                     RowLayout {
                         id: overviewAndSpinnyRow
                         Layout.fillWidth: true
@@ -332,25 +325,10 @@ Controls.Panel {
                         Layout.maximumHeight: root.minimized ? 20 : 63
                         spacing: 1
 
-                        // Small Spinny/Cover Slot (Small mode)
-                        SpinnyCoverSlot {
-                            id: leftSpinnySmall
-                            Layout.preferredHeight: 63
-                            Layout.preferredWidth: 63
-                            group: root.group
-                            visible: root.showSmallSpinnyOrCover
-                        }
-
-                        // Waveform Overview Row
-                        OverviewRow {
-                            id: overviewRow
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            group: root.group
-                        }
-
-                        // Real beatgrid editor from LateNightQML/Waveforms.
-                        BeatgridControls {
+                        // Put the real BeatGrid editor first so it receives a guaranteed
+                        // layout allocation on narrow Android screens instead of being
+                        // pushed off the right edge by OverviewRow.
+                        DeckBeatgridEditor {
                             id: beatgridControls
                             Layout.preferredWidth: root.showBeatgridControls ? root.beatgridControlsWidth : 0
                             Layout.minimumWidth: root.showBeatgridControls ? root.beatgridControlsWidth : 0
@@ -362,11 +340,25 @@ Controls.Panel {
                             visible: root.showBeatgridControls
                             z: 20
                         }
+
+                        SpinnyCoverSlot {
+                            id: leftSpinnySmall
+                            Layout.preferredHeight: 63
+                            Layout.preferredWidth: 63
+                            group: root.group
+                            visible: root.showSmallSpinnyOrCover
+                        }
+
+                        OverviewRow {
+                            id: overviewRow
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            group: root.group
+                        }
                     }
                 }
             }
 
-            // Lower Transport, Loop, Beatjump Placeholders
             TransportLoopBeatjumpPlaceholders {
                 id: transportRow
                 Layout.fillWidth: true
@@ -384,7 +376,6 @@ Controls.Panel {
             }
         }
 
-        // Right Rate controls placeholder
         RatePlaceholder {
             id: rateControls
             Layout.preferredWidth: 90
@@ -403,5 +394,4 @@ Controls.Panel {
         anchors.fill: parent
         group: root.group
     }
-
 }
