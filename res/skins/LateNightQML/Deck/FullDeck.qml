@@ -25,7 +25,8 @@ Controls.Panel {
     readonly property bool showRateControls: showRateControlsProxy.value > 0
     readonly property bool showSmallSpinnyOrCover: selectBigSpinnyProxy.value <= 0 && !root.minimized
     readonly property bool showVinylControls: showVinylControlsProxy.value > 0
-    readonly property bool showBeatgridControls: showBeatgridControlsProxy.value > 0
+    readonly property bool showBeatgridControls: showBeatgridControlsLocal
+    property bool showBeatgridControlsLocal: false
     readonly property int beatgridControlsWidth: timingShiftButtonsProxy.value > 0 ? 130 : 104
 
     signal toggleFocus
@@ -103,7 +104,15 @@ Controls.Panel {
         group: "[Skin]"
         key: "show_beatgrid_controls"
     }
+    Mixxx.ControlProxy {
+        id: showBeatgridControlsDeckProxy
+        group: root.group
+        key: "show_beatgrid_controls"
 
+        onValueChanged: {
+            root.showBeatgridControlsLocal = value > 0
+        }
+    }
     Mixxx.ControlProxy {
         id: timingShiftButtonsProxy
         group: "[Skin]"

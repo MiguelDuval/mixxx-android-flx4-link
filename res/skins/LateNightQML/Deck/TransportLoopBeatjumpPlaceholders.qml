@@ -159,6 +159,26 @@ Item {
             Layout.preferredWidth: 4
         }
 
+        // BeatGrid toggle button
+        LateNightControlButton {
+            Layout.preferredWidth: 68
+            Layout.preferredHeight: 26
+            backgroundSource: LateNightTheme.lateNightSubRegionButton("medium")
+            iconSource: LateNightTheme.assetDeckBeatgridButton
+            group: root.group
+            key: "show_beatgrid_controls"
+            toggleable: true
+            activeBackgroundSuffix: "active"
+            pressedBackgroundSuffix: "active"
+            activeOpacity: 1.0
+            inactiveOpacity: 0.82
+            activeColor: LateNightTheme.activePlayCueColor
+        }
+
+        Item {
+            Layout.preferredWidth: 4
+        }
+
         // Hotcue controls (behavior in progress)
         GridLayout {
             columns: root.show8Hotcues ? 4 : 2
