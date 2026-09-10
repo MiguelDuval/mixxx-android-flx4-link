@@ -20,6 +20,18 @@ ApplicationWindow {
     visible: true
     width: isMobile ? Screen.width : designWidth
 
+    Mixxx.ControlProxy {
+        id: bitgrid1Action
+        group: "[Channel1]"
+        key: "beats_translate_curpos"
+    }
+
+    Mixxx.ControlProxy {
+        id: bitgrid2Action
+        group: "[Channel2]"
+        key: "beats_translate_curpos"
+    }
+
     function updateVisibility() {
         if (!Mixxx.Core.ready) {
             return;
@@ -57,6 +69,79 @@ ApplicationWindow {
             }
         }
     }
+
+    Rectangle {
+        id: bitgridStrip
+
+        anchors.left: parent.left
+        anchors.top: parent.top
+        color: "#151515"
+        height: 44
+        visible: root.isMobile && content.status === Loader.Ready
+        width: Math.min(parent.width, 220)
+        z: 100000
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: 4
+            spacing: 4
+
+            Rectangle {
+                color: bitgrid1MouseArea.pressed ? "#00a8cc" : "#3a3a3a"
+                height: parent.height - 8
+                radius: 3
+                width: 102
+
+                Text {
+                    anchors.fill: parent
+                    color: "white"
+                    font.bold: true
+                    font.family: "Open Sans"
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    text: "BITGRID 1"
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                MouseArea {
+                    id: bitgrid1MouseArea
+                    anchors.fill: parent
+                    onClicked: {
+                        console.log("[BitGrid] BITGRID 1 clicked");
+                        bitgrid1Action.trigger();
+                    }
+                }
+            }
+
+            Rectangle {
+                color: bitgrid2MouseArea.pressed ? "#00a8cc" : "#3a3a3a"
+                height: parent.height - 8
+                radius: 3
+                width: 102
+
+                Text {
+                    anchors.fill: parent
+                    color: "white"
+                    font.bold: true
+                    font.family: "Open Sans"
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    text: "BITGRID 2"
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                MouseArea {
+                    id: bitgrid2MouseArea
+                    anchors.fill: parent
+                    onClicked: {
+                        console.log("[BitGrid] BITGRID 2 clicked");
+                        bitgrid2Action.trigger();
+                    }
+                }
+            }
+        }
+    }
+
     Rectangle {
         id: splash
         visible: opacity > 0
