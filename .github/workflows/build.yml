@@ -21,6 +21,98 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Patch BitGrid toolbar placement for Android build
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml')
+          text = path.read_text(encoding='utf-8')
+
+          block = '''            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                // BitGrid 1 - Opens Deck 1 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid1Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 1"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid1Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid1Popup
+                    popupAnchor: bitgrid1Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+
+                // BitGrid 2 - Opens Deck 2 BeatGrid panel
+                LateNightToolbarButton {
+                    id: bitgrid2Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 2"
+
+                    onActivated: {
+                        root.openPopupForButton(bitgrid2Popup, this);
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid2Popup
+                    popupAnchor: bitgrid2Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+            }
+'''
+
+          if text.count(block) != 1:
+              raise SystemExit(f'Expected exactly one BitGrid toolbar block, found {text.count(block)}')
+
+          text = text.replace(block, '', 1)
+
+          anchor = '''        LateNightToolbarMenuButton {
+            id: appMenuButton
+
+            popup: appMenuPopup
+            visible: Qt.platform.os !== "osx"
+
+            onClicked: {
+                root.openPopupForButton(appMenuPopup, this);
+            }
+        }
+'''
+
+          if anchor not in text:
+              raise SystemExit('Toolbar app-menu anchor not found')
+
+          text = text.replace(anchor, anchor + block, 1)
+          path.write_text(text, encoding='utf-8')
+
+      - name: Validate BitGrid toolbar placement
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('res/skins/LateNightQML/Toolbar/Toolbar.qml').read_text(encoding='utf-8')
+          a = p.index('id: appMenuButton')
+          b = p.index('id: bitgrid1Button')
+          c = p.index('id: maximizeLibraryButton')
+          assert a < b < c, (a, b, c)
+          assert p.count('id: bitgrid1Button') == 1
+          assert p.count('id: bitgrid2Button') == 1
+          print('BitGrid 1/2 are in the leading visible toolbar section.')
+          PY
+
       - name: Prepare Android build environment
         shell: bash
         run: |
