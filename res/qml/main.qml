@@ -74,11 +74,12 @@ ApplicationWindow {
         id: bitgridStrip
 
         anchors.left: parent.left
+        anchors.leftMargin: 270
         anchors.top: parent.top
         color: "#151515"
         height: 44
         visible: root.isMobile && content.status === Loader.Ready
-        width: Math.min(parent.width, 220)
+        width: 220
         z: 100000
 
         Row {
