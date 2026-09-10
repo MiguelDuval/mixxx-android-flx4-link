@@ -45,7 +45,7 @@
 
           <Template src="skins:LateNight/controls/button_2state_persist.xml">
             <SetVariable name="TooltipId">show_mixer</SetVariable>
-            <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
+            <SetVariable name="ObjectName">GuiToggleButton</ObjectName>
             <SetVariable name="Size">48f,20f</SetVariable>
             <SetVariable name="state_0_text">MIXER</SetVariable>
             <SetVariable name="state_1_text">MIXER</SetVariable>
@@ -63,7 +63,7 @@
 
           <Template src="skins:LateNight/controls/button_2state_persist.xml">
             <SetVariable name="TooltipId">show_samplers</SetVariable>
-            <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
+            <SetVariable name="ObjectName">GuiToggleButton</ObjectName>
             <SetVariable name="Size">71f,20f</SetVariable>
             <SetVariable name="state_0_text">SAMPLERS</SetVariable>
             <SetVariable name="state_1_text">SAMPLERS</SetVariable>
@@ -72,11 +72,39 @@
 
           <Template src="skins:LateNight/controls/button_2state_persist.xml">
             <SetVariable name="TooltipId">show_microphone</SetVariable>
-            <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
+            <SetVariable name="ObjectName">GuiToggleButton</ObjectName>
             <SetVariable name="Size">61f,20f</SetVariable>
             <SetVariable name="state_0_text">MIC/AUX</SetVariable>
             <SetVariable name="state_1_text">MIC/AUX</SetVariable>
             <SetVariable name="ConfigKey">[Skin],show_microphones</SetVariable>
+          </Template>
+
+          <!-- Direct per-deck BeatGrid actions. These are deliberately placed on the
+               always-visible classic toolbar so they cannot be hidden by deck layout.
+               Left click: align the nearest beat to the current play position.
+               Right click: match beatgrid alignment with the other deck. -->
+          <Template src="skins:LateNight/controls/button_1state_right.xml">
+            <SetVariable name="TooltipId">beats_translate_curpos</SetVariable>
+            <SetVariable name="ObjectName">BitgridActionButton1</SetVariable>
+            <SetVariable name="BtnType">embedded</SetVariable>
+            <SetVariable name="BtnSize">medium</SetVariable>
+            <SetVariable name="Size">82f,20f</SetVariable>
+            <SetVariable name="state_0_text">BITGRID 1</SetVariable>
+            <SetVariable name="Align">center</SetVariable>
+            <SetVariable name="ConfigKey">[Channel1],beats_translate_curpos</SetVariable>
+            <SetVariable name="ConfigKeyRight">[Channel1],beats_translate_match_alignment</SetVariable>
+          </Template>
+
+          <Template src="skins:LateNight/controls/button_1state_right.xml">
+            <SetVariable name="TooltipId">beats_translate_curpos</SetVariable>
+            <SetVariable name="ObjectName">BitgridActionButton2</SetVariable>
+            <SetVariable name="BtnType">embedded</SetVariable>
+            <SetVariable name="BtnSize">medium</SetVariable>
+            <SetVariable name="Size">82f,20f</SetVariable>
+            <SetVariable name="state_0_text">BITGRID 2</SetVariable>
+            <SetVariable name="Align">center</SetVariable>
+            <SetVariable name="ConfigKey">[Channel2],beats_translate_curpos</SetVariable>
+            <SetVariable name="ConfigKeyRight">[Channel2],beats_translate_match_alignment</SetVariable>
           </Template>
 
         </Children>
@@ -104,7 +132,7 @@
 
           <Template src="skins:LateNight/controls/button_2state_persist.xml">
             <SetVariable name="TooltipId">toggle_4decks</SetVariable>
-            <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
+            <SetVariable name="ObjectName">GuiToggleButton</ObjectName>
             <SetVariable name="Size">52f,20f</SetVariable>
             <SetVariable name="state_0_text">4 DECKS</SetVariable>
             <SetVariable name="state_1_text">4 DECKS</SetVariable>
@@ -181,9 +209,7 @@
       <WidgetGroup>
         <ObjectName>LatencyBatteryContainer</ObjectName>
         <Layout>horizontal</Layout>
-        <SizePolicy>min,min</SizePolicy>
         <Children>
-
           <WidgetGroup>
             <ObjectName></ObjectName>
             <Layout>vertical</Layout>
@@ -213,7 +239,7 @@
                   <ConfigKey>[App],audio_latency_overload</ConfigKey>
                   <BindProperty>highlight</BindProperty>
                 </Connection>
-              </WidgetGroup><!-- LatencyMeterBox -->
+              </WidgetGroup>
               <Label>
                 <ObjectName>LatencyLabel</ObjectName>
                 <TooltipId>audio_latency_usage</TooltipId>
@@ -222,9 +248,9 @@
                 <Text>Buffer %</Text>
               </Label>
             </Children>
-          </WidgetGroup><!-- LatencyMeterBox -->
+          </WidgetGroup>
         </Children>
-      </WidgetGroup><!-- LatencyBatteryContainer -->
+      </WidgetGroup>
 
       <WidgetGroup><Size>7f,1min</Size></WidgetGroup>
 
@@ -242,18 +268,15 @@
             <PixmapsDischarging scalemode="STRETCH_ASPECT">skins:LateNight/<Variable name="StyleScheme"/>/style/batt/ic_battery_discharging_%1.svg</PixmapsDischarging>
           </Battery>
         </Children>
-      </WidgetGroup><!-- BatteryBox -->
+      </WidgetGroup>
 
       <WidgetGroup><Size>9f,min</Size></WidgetGroup>
 
-      <WidgetGroup><!-- Recording button & recording duration label -->
+      <WidgetGroup>
         <ObjectName>RecBox</ObjectName>
         <Layout>stacked</Layout>
         <Size>72f,20f</Size>
-        <!-- minus 1px border
-            = 70x18 available for text -->
         <Children>
-          <!-- invisible Rec button -->
           <Template src="skins:LateNight/controls/button_2state.xml">
             <SetVariable name="ObjectName">RecButton</SetVariable>
             <SetVariable name="TooltipId">toggle_recording</SetVariable>
@@ -261,7 +284,7 @@
             <SetVariable name="ConfigKey">[Recording],toggle_recording</SetVariable>
           </Template>
 
-          <WidgetGroup><!-- Rec dot + RecDuration -->
+          <WidgetGroup>
             <Layout>horizontal</Layout>
             <Size>68f,20f</Size>
             <Children>
@@ -285,9 +308,8 @@
                 </Connection>
               </RecordingDuration>
             </Children>
-          </WidgetGroup><!-- /Rec dot + RecDuration -->
+          </WidgetGroup>
 
-          <!-- Rec feedback color -->
           <Template src="skins:LateNight/controls/button_3state_display.xml">
             <SetVariable name="ObjectName">RecFeedback</SetVariable>
             <SetVariable name="Size">72f,20f</SetVariable>
@@ -295,7 +317,7 @@
             <SetVariable name="ConfigKeyDisp">[Recording],status</SetVariable>
           </Template>
         </Children>
-      </WidgetGroup><!-- /Recording button & recording duration label -->
+      </WidgetGroup>
 
       <Template src="skins:LateNight/controls/button_5state_display.xml">
         <SetVariable name="ObjectName">BroadcastButton</SetVariable>
