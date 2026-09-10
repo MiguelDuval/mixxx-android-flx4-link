@@ -560,6 +560,18 @@ Rectangle {
         key: "LoadSamplerBank"
     }
     Mixxx.ControlProxy {
+        id: bitgrid1Action
+
+        group: "[Channel1]"
+        key: "beats_translate_curpos"
+    }
+    Mixxx.ControlProxy {
+        id: bitgrid2Action
+
+        group: "[Channel2]"
+        key: "beats_translate_curpos"
+    }
+    Mixxx.ControlProxy {
         id: saveSamplerBankControl
 
         group: "[Sampler]"
@@ -822,6 +834,52 @@ Rectangle {
 
                     onActivated: {
                         showMicAuxControl.value = checked ? 1.0 : 0.0;
+                    }
+                }
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                // BitGrid 1 - Controls Deck 1
+                LateNightToolbarButton {
+                    id: bitgrid1Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 1"
+
+                    onActivated: {
+                        bitgrid1Action.value = 1.0;
+                        bitgrid1Action.value = 0.0;
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid1SettingsPopup
+                    popupAnchor: bitgrid1Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
+                    }
+                }
+
+                // BitGrid 2 - Controls Deck 2
+                LateNightToolbarButton {
+                    id: bitgrid2Button
+
+                    buttonWidth: 70
+                    text: "BitGrid 2"
+
+                    onActivated: {
+                        bitgrid2Action.value = 1.0;
+                        bitgrid2Action.value = 0.0;
+                    }
+                }
+                LateNightToolbarDropButton {
+                    popup: bitgrid2SettingsPopup
+                    popupAnchor: bitgrid2Button
+
+                    onClicked: {
+                        root.openPopupForButton(popup, this);
                     }
                 }
             }
@@ -1520,6 +1578,48 @@ Rectangle {
                 control: equalWaveformHeightsControl
                 enabled: showWaveformsControl.value > 0
                 text: "Enforce equal heights"
+            }
+        }
+    }
+    ToolbarSettingsPopup {
+        id: bitgrid1SettingsPopup
+
+        ToolbarMenuSectionToggle {
+            title: "BitGrid 1 (Deck 1)"
+            control: showBeatgridControlsControl
+
+            ToolbarMenuToggle {
+                control: showHotcuesControl
+                text: "Show Hotcues"
+            }
+            ToolbarMenuToggle {
+                control: showLoopControlsControl
+                text: "Show Loop Controls"
+            }
+            ToolbarMenuToggle {
+                control: showBeatjumpControlsControl
+                text: "Show Beatjump Controls"
+            }
+        }
+    }
+    ToolbarSettingsPopup {
+        id: bitgrid2SettingsPopup
+
+        ToolbarMenuSectionToggle {
+            title: "BitGrid 2 (Deck 2)"
+            control: showBeatgridControlsControl
+
+            ToolbarMenuToggle {
+                control: showHotcuesControl
+                text: "Show Hotcues"
+            }
+            ToolbarMenuToggle {
+                control: showLoopControlsControl
+                text: "Show Loop Controls"
+            }
+            ToolbarMenuToggle {
+                control: showBeatjumpControlsControl
+                text: "Show Beatjump Controls"
             }
         }
     }
