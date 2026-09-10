@@ -52,7 +52,7 @@ Item {
             }
         }
     }
-    Skin.Button {
+    Skin.ControlButton {
         id: beatgridButton
 
         anchors.right: ejectButton.left
@@ -60,6 +60,9 @@ Item {
         implicitHeight: 22
         text: "Beatgrid"
         visible: root.width > 165
+        group: "[Skin]"
+        key: "show_beatgrid_controls"
+        toggleable: true
     }
     Skin.ControlButton {
         id: ejectButton
