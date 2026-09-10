@@ -116,3 +116,5 @@ jobs:
           git rm .github/workflows/one-time-bitgrid-layout-fix.yml
           git commit -m "Fix BitGrid: keep deck controls visible on Android toolbar"
           git push
+
+# Triggered once after creation so the patch job actually executes.
