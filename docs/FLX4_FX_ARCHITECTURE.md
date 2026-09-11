@@ -17,6 +17,10 @@ The current verified BitGrid state is the implementation baseline. FX work must 
 
 The DDJ-FLX4 exposes eight physical pads for each Pad FX mode, while Mixxx EffectUnits expose three effect slots. The Android mapping therefore uses an eight-effect logical trigger bank backed by a three-slot active pool. Pad FX1 selects effects 1-8 from the installed Mixxx effect list; Pad FX2 selects effects 9-16, wrapping when fewer effects are installed. Up to three pads can remain active simultaneously. A fourth press recycles the least-recently pressed active slot rather than creating unsupported state.
 
+## Effects UI integration
+
+The main Android `Effects` toolbar button reveals the existing `Skin.EffectRow` UI. Pad FX uses the same EffectUnit 2/3 ControlObjects as the controller mapping, so assignments and effect parameters remain visible through the standard Mixxx Effects UI rather than a parallel Pad FX state model.
+
 ## Design rule
 
 The physical controller is the source of interaction. Mixxx ControlObjects are the source of truth. Android UI mirrors the engine/controller state rather than maintaining a parallel FX state machine.
