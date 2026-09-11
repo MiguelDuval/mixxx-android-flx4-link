@@ -3,6 +3,7 @@ name: Android APK
 # This repository intentionally keeps a single CI workflow: build the Android APK.
 # FLX4 + Ableton Link + Android USB support are built from main.
 # Pad FX + Effects UI source is included in the current main revision.
+# CI verification trigger for the current Pad FX / Effects fix.
 on:
   workflow_dispatch:
   push:
