@@ -126,31 +126,38 @@ Rectangle {
                 MouseArea {
                     id: columnResizeHandler
 
-                    property int sizeOffset: 0
+                    property real startWidth: 0
+                    property real startMouseX: 0
 
                     anchors.fill: parent
                     cursorShape: Qt.SizeHorCursor
                     preventStealing: true
 
-                    onMouseXChanged: {
-                        if (drag.active) {
-                            column.width += mouseX;
-                            sizeOffset += mouseX;
+                    onPressed: mouse => {
+                        startWidth = column.width;
+                        startMouseX = mouse.x;
+                    }
+
+                    onPositionChanged: mouse => {
+                        if (!pressed) {
+                            return;
+                        }
+                        column.width = Math.max(1, startWidth + (mouse.x - startMouseX));
+                    }
+
+                    onReleased: {
+                        if (Math.abs(column.width - startWidth) > 0.001) {
+                            view.model.columns[index].preferredWidth = column.width;
+                            view.updateColumnSize();
+                            view.forceLayout();
                         }
                     }
 
-                    drag {
-                        axis: Drag.XAxis
-                        target: parent
-                        threshold: 2
-
-                        onActiveChanged: {
-                            if (!drag.active && columnResizeHandler.sizeOffset !== 0) {
-                                view.model.columns[index].preferredWidth = column.width;
-                                columnResizeHandler.sizeOffset = 0;
-                                view.updateColumnSize();
-                                view.forceLayout();
-                            }
+                    onCanceled: {
+                        if (Math.abs(column.width - startWidth) > 0.001) {
+                            view.model.columns[index].preferredWidth = column.width;
+                            view.updateColumnSize();
+                            view.forceLayout();
                         }
                     }
                 }
