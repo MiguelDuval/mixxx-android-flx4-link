@@ -79,7 +79,7 @@ Item {
                                     "type": "row",
                                     "items": [
                                         {
-                                            "type": "column",
+                                            "type": "row",
                                             "items": [
                                                 {
                                                     "type": "play"
@@ -208,7 +208,7 @@ Item {
 
             LayoutItem {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.minimized ? 28 : 56
+                Layout.preferredHeight: root.minimized ? 28 : 48
                 editOverlay.visible: false
 
                 DeckComponent.InfoBar {
@@ -237,7 +237,7 @@ Item {
                 editLabel.font.capitalization: Font.AllUppercase
                 editLabel.text: "Loop"
                 editOverlay.color: Theme.midGray
-                height: 92
+                height: 76
 
                 DeckComponent.Loop {
                     anchors.fill: parent
@@ -254,7 +254,7 @@ Item {
                 editLabel.font.capitalization: Font.AllUppercase
                 editLabel.text: "Beatjump"
                 editOverlay.color: Theme.midGray
-                height: 92
+                height: 76
 
                 DeckComponent.BeatJump {
                     anchors.fill: parent
@@ -268,6 +268,8 @@ Item {
             LayoutItem {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
+                Layout.preferredHeight: 76
+                Layout.minimumHeight: 64
                 blurRadius: 4
                 editLabel.color: Theme.white
                 editLabel.font.pixelSize: 14
@@ -324,7 +326,7 @@ Item {
             roleValue: "play"
 
             LayoutItem {
-                Layout.preferredHeight: root.minimized ? 32 : 60
+                Layout.preferredHeight: root.minimized ? 32 : 68
                 Layout.preferredWidth: 60
                 editLabel.color: Theme.white
                 editLabel.horizontalAlignment: Text.AlignHCenter
@@ -344,7 +346,7 @@ Item {
             roleValue: "cue"
 
             LayoutItem {
-                Layout.preferredHeight: root.minimized ? 32 : 60
+                Layout.preferredHeight: root.minimized ? 32 : 68
                 Layout.preferredWidth: 60
                 editLabel.color: Theme.white
                 editLabel.horizontalAlignment: Text.AlignHCenter
@@ -424,7 +426,7 @@ Item {
                 editLabel.font.pixelSize: 14
                 editLabel.text: "Hotcue & Stem"
                 editOverlay.color: Qt.alpha('black', 0.5)
-                height: 92
+                height: 76
 
                 DeckComponent.HotcueAndStem {
                     anchors.fill: parent
