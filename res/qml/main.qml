@@ -20,6 +20,9 @@ ApplicationWindow {
     visible: true
     width: isMobile ? Screen.width : designWidth
 
+    // These are the actual Mixxx engine commands for the two Android decks.
+    // beats_translate_curpos is the native BeatGrid action: move the closest
+    // beat onto the current play position.
     Mixxx.ControlProxy {
         id: bitgrid1Action
         group: "[Channel1]"
@@ -30,6 +33,27 @@ ApplicationWindow {
         id: bitgrid2Action
         group: "[Channel2]"
         key: "beats_translate_curpos"
+    }
+
+    // Live engine feedback. beat_distance is maintained by BpmControl and is
+    // a much stronger verification than merely changing the button color.
+    Mixxx.ControlProxy {
+        id: bitgrid1Phase
+        group: "[Channel1]"
+        key: "beat_distance"
+    }
+
+    Mixxx.ControlProxy {
+        id: bitgrid2Phase
+        group: "[Channel2]"
+        key: "beat_distance"
+    }
+
+    function phaseText(proxy) {
+        if (!proxy.initialized) {
+            return "OFFLINE";
+        }
+        return (Math.abs(proxy.value) * 100).toFixed(1) + "% phase";
     }
 
     function updateVisibility() {
@@ -93,23 +117,39 @@ ApplicationWindow {
                 radius: 3
                 width: 102
 
-                Text {
-                    anchors.fill: parent
-                    color: "white"
-                    font.bold: true
-                    font.family: "Open Sans"
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "BITGRID 1"
-                    verticalAlignment: Text.AlignVCenter
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 1
+
+                    Text {
+                        color: "white"
+                        font.bold: true
+                        font.family: "Open Sans"
+                        font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "BITGRID 1"
+                        width: 102
+                    }
+                    Text {
+                        color: "#b8eaff"
+                        font.family: "Open Sans"
+                        font.pixelSize: 9
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.phaseText(bitgrid1Phase)
+                        width: 102
+                    }
                 }
 
                 MouseArea {
                     id: bitgrid1MouseArea
                     anchors.fill: parent
                     onClicked: {
-                        console.log("[BitGrid] BITGRID 1 clicked");
-                        bitgrid1Action.trigger();
+                        console.log("[BitGrid] BITGRID 1 clicked; initialized=" + bitgrid1Action.initialized + ", phase=" + bitgrid1Phase.value);
+                        if (bitgrid1Action.initialized) {
+                            bitgrid1Action.trigger();
+                        } else {
+                            console.warn("[BitGrid] BITGRID 1 action is not initialized");
+                        }
                     }
                 }
             }
@@ -120,23 +160,39 @@ ApplicationWindow {
                 radius: 3
                 width: 102
 
-                Text {
-                    anchors.fill: parent
-                    color: "white"
-                    font.bold: true
-                    font.family: "Open Sans"
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "BITGRID 2"
-                    verticalAlignment: Text.AlignVCenter
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 1
+
+                    Text {
+                        color: "white"
+                        font.bold: true
+                        font.family: "Open Sans"
+                        font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "BITGRID 2"
+                        width: 102
+                    }
+                    Text {
+                        color: "#b8eaff"
+                        font.family: "Open Sans"
+                        font.pixelSize: 9
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.phaseText(bitgrid2Phase)
+                        width: 102
+                    }
                 }
 
                 MouseArea {
                     id: bitgrid2MouseArea
                     anchors.fill: parent
                     onClicked: {
-                        console.log("[BitGrid] BITGRID 2 clicked");
-                        bitgrid2Action.trigger();
+                        console.log("[BitGrid] BITGRID 2 clicked; initialized=" + bitgrid2Action.initialized + ", phase=" + bitgrid2Phase.value);
+                        if (bitgrid2Action.initialized) {
+                            bitgrid2Action.trigger();
+                        } else {
+                            console.warn("[BitGrid] BITGRID 2 action is not initialized");
+                        }
                     }
                 }
             }
