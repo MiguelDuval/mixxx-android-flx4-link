@@ -10,8 +10,12 @@ The current verified BitGrid state is the implementation baseline. FX work must 
 
 - Smart CFX: per-deck QuickEffectRack (`[QuickEffectRack1_[Channel1]]` / `[QuickEffectRack1_[Channel2]]`), driven by each deck's CFX knob and an explicit Smart CFX mode.
 - Beat FX: EffectUnit 1 (`[EffectRack1_EffectUnit1]`). Preserve the existing FLX4 mapping behavior: effect selection, focus, beat selection, level/depth, meta via shift, and on/off.
-- Pad FX Deck 1: reserved EffectUnit 2.
-- Pad FX Deck 2: reserved EffectUnit 3.
+- Pad FX Deck 1: EffectUnit 2.
+- Pad FX Deck 2: EffectUnit 3.
+
+### Pad FX slot model
+
+The DDJ-FLX4 exposes eight physical pads for each Pad FX mode, while Mixxx EffectUnits expose three effect slots. The Android mapping therefore uses an eight-effect logical trigger bank backed by a three-slot active pool. Pad FX1 selects effects 1-8 from the installed Mixxx effect list; Pad FX2 selects effects 9-16, wrapping when fewer effects are installed. Up to three pads can remain active simultaneously. A fourth press recycles the least-recently pressed active slot rather than creating unsupported state.
 
 ## Design rule
 

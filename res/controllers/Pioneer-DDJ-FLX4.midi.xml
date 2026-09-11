@@ -1260,6 +1260,329 @@
                     <Script-Binding/>
                 </options>
             </control>
+            <!-- PAD FX PADS START -->
+            <control>
+                <description>PAD 1 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x10</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 1 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x10</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 2 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x11</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 2 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x11</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 3 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x12</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 3 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x12</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 4 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x13</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 4 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x13</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 5 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x14</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 5 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x14</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 6 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x15</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 6 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x15</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 7 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x16</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 7 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x16</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 8 (DECK1) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x97</status>
+                <midino>0x17</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 8 (DECK1) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel1]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x98</status>
+                <midino>0x17</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 1 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x10</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 1 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x10</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 2 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x11</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 2 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x11</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 3 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x12</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 3 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x12</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 4 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x13</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 4 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x13</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 5 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x14</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 5 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x14</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 6 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x15</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 6 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x15</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 7 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x16</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 7 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x16</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 8 (DECK2) PAD FX1 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x99</status>
+                <midino>0x17</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <control>
+                <description>PAD 8 (DECK2) PAD FX2 - hold - trigger pad FX</description>
+                <group>[Channel2]</group>
+                <key>PioneerDDJFLX4.padFxPadPressed</key>
+                <status>0x9A</status>
+                <midino>0x17</midino>
+                <options>
+                    <Script-Binding/>
+                </options>
+            </control>
+            <!-- PAD FX PADS END -->
+
             <!-- PAD MODE SECTION END -->
 
             <!-- HOT CUE MODE START -->

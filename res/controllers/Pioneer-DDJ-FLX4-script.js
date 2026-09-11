@@ -39,8 +39,6 @@
 //
 //      * Secondary pad modes (trial attempts complex and too experimental)
 //        * Keyboard mode
-//        * Pad FX1
-//        * Pad FX2
 //
 //  Implemented in this Android port:
 //      * Smart CFX button -> both channel QuickEffectRacks enabled state
@@ -198,6 +196,19 @@ PioneerDDJFLX4.shiftButtonDown = [false, false];
 // Smart CFX is a global hardware mode; both deck QuickEffectRacks follow it.
 PioneerDDJFLX4.smartCfxEnabled = false;
 
+// Pad FX uses the dedicated EffectUnit 2/3 per deck. Mixxx exposes three
+// effect slots per EffectUnit, so the eight physical pads are treated as an
+// eight-effect trigger bank with a three-slot active pool. Pad FX1 addresses
+// effects 1-8; Pad FX2 addresses effects 9-16 (wrapping to the installed list).
+PioneerDDJFLX4.padFx = {
+    units: [
+        "[EffectRack1_EffectUnit2]",
+        "[EffectRack1_EffectUnit3]"
+    ],
+    slots: [[], []],
+    sequence: [0, 0],
+};
+
 // Jog wheel loop adjust
 PioneerDDJFLX4.loopAdjustIn = [false, false];
 PioneerDDJFLX4.loopAdjustOut = [false, false];
@@ -262,6 +273,7 @@ PioneerDDJFLX4.toggleLight = function(midiIn, active) {
 
 PioneerDDJFLX4.init = function() {
     engine.setValue("[EffectRack1_EffectUnit1]", "show_focus", 1);
+    PioneerDDJFLX4.initializePadFx();
 
     engine.makeConnection("[Channel1]", "vu_meter", PioneerDDJFLX4.vuMeterUpdate);
     engine.makeConnection("[Channel2]", "vu_meter", PioneerDDJFLX4.vuMeterUpdate);
@@ -784,26 +796,194 @@ PioneerDDJFLX4.samplerPlayOutputCallbackFunction = function(value, group, _contr
     }
 };
 
-PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
-    const deck = (_status === 0x90 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+PioneerDDJFLX4.setPadModeLight = function(deck, modeControl) {
+    const modes = [
+        deck.hotcueMode,
+        deck.keyboardMode,
+        deck.padFX1Mode,
+        deck.padFX2Mode,
+        deck.beatJumpMode,
+        deck.beatLoopMode,
+        deck.samplerMode,
+        deck.keyShiftMode,
+    ];
 
-    if (_control === 0x1B) {
-        PioneerDDJFLX4.toggleLight(deck.hotcueMode, true);
-    } else if (_control === 0x69) {
-        PioneerDDJFLX4.toggleLight(deck.keyboardMode, true);
-    } else if (_control === 0x1E) {
-        PioneerDDJFLX4.toggleLight(deck.padFX1Mode, true);
-    } else if (_control === 0x6B) {
-        PioneerDDJFLX4.toggleLight(deck.padFX2Mode, true);
-    } else if (_control === 0x20) {
-        PioneerDDJFLX4.toggleLight(deck.beatJumpMode, true);
-    } else if (_control === 0x6D) {
-        PioneerDDJFLX4.toggleLight(deck.beatLoopMode, true);
-    } else if (_control === 0x22) {
-        PioneerDDJFLX4.toggleLight(deck.samplerMode, true);
-    } else if (_control === 0x6F) {
-        PioneerDDJFLX4.toggleLight(deck.keyShiftMode, true);
+    modes.forEach(function(light) {
+        PioneerDDJFLX4.toggleLight(light, false);
+    });
+
+    switch (modeControl) {
+    case 0x1B: PioneerDDJFLX4.toggleLight(deck.hotcueMode, true); break;
+    case 0x69: PioneerDDJFLX4.toggleLight(deck.keyboardMode, true); break;
+    case 0x1E: PioneerDDJFLX4.toggleLight(deck.padFX1Mode, true); break;
+    case 0x6B: PioneerDDJFLX4.toggleLight(deck.padFX2Mode, true); break;
+    case 0x20: PioneerDDJFLX4.toggleLight(deck.beatJumpMode, true); break;
+    case 0x6D: PioneerDDJFLX4.toggleLight(deck.beatLoopMode, true); break;
+    case 0x22: PioneerDDJFLX4.toggleLight(deck.samplerMode, true); break;
+    case 0x6F: PioneerDDJFLX4.toggleLight(deck.keyShiftMode, true); break;
     }
+};
+
+PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
+    if (value === 0) {
+        return;
+    }
+
+    const deck = (_status === 0x90 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+    PioneerDDJFLX4.setPadModeLight(deck, _control);
+};
+
+PioneerDDJFLX4.initializePadFx = function() {
+    for (let deckIndex = 0; deckIndex < 2; deckIndex++) {
+        const unit = PioneerDDJFLX4.padFx.units[deckIndex];
+        const channel = `[Channel${deckIndex + 1}]`;
+        const otherChannel = `[Channel${deckIndex === 0 ? 2 : 1}]`;
+
+        engine.setValue(unit, "show_focus", 1);
+        engine.setValue(unit, "group_" + channel + "_enable", 1);
+        engine.setValue(unit, "group_" + otherChannel + "_enable", 0);
+        engine.setParameter(unit, "mix", 0);
+
+        for (let slot = 1; slot <= 3; slot++) {
+            engine.setValue(`${unit}_Effect${slot}`, "enabled", 0);
+        }
+    }
+};
+
+PioneerDDJFLX4.padFxPadStatus = function(deckIndex, mode, pad) {
+    return `${mode}:${pad}:${deckIndex}`;
+};
+
+PioneerDDJFLX4.padFxLight = function(deckIndex, pad, active) {
+    const statusPair = deckIndex === 0 ? [0x97, 0x98] : [0x99, 0x9A];
+    statusPair.forEach(function(status) {
+        midi.sendShortMsg(status, 0x10 + pad, active ? 0x7F : 0x00);
+    });
+};
+
+PioneerDDJFLX4.findPadFxSlot = function(deckIndex, key) {
+    return PioneerDDJFLX4.padFx.slots[deckIndex].findIndex(function(slot) {
+        return slot && slot.key === key;
+    });
+};
+
+PioneerDDJFLX4.findFreePadFxSlot = function(deckIndex) {
+    const slots = PioneerDDJFLX4.padFx.slots[deckIndex];
+    for (let slot = 0; slot < 3; slot++) {
+        if (!slots[slot]) {
+            return slot;
+        }
+    }
+    return -1;
+};
+
+PioneerDDJFLX4.findOldestPadFxSlot = function(deckIndex) {
+    const slots = PioneerDDJFLX4.padFx.slots[deckIndex];
+    let oldestIndex = -1;
+    let oldestSequence = Number.POSITIVE_INFINITY;
+
+    slots.forEach(function(slot, index) {
+        if (slot && slot.sequence < oldestSequence) {
+            oldestSequence = slot.sequence;
+            oldestIndex = index;
+        }
+    });
+
+    return oldestIndex;
+};
+
+PioneerDDJFLX4.releasePadFxSlot = function(deckIndex, slotIndex) {
+    const slotState = PioneerDDJFLX4.padFx.slots[deckIndex][slotIndex];
+    if (!slotState) {
+        return;
+    }
+
+    const unit = PioneerDDJFLX4.padFx.units[deckIndex];
+    engine.setValue(`${unit}_Effect${slotIndex + 1}`, "enabled", 0);
+    PioneerDDJFLX4.padFxLight(deckIndex, slotState.pad, false);
+    PioneerDDJFLX4.padFx.slots[deckIndex][slotIndex] = null;
+
+    const stillActive = PioneerDDJFLX4.padFx.slots[deckIndex].some(Boolean);
+    if (!stillActive) {
+        engine.setParameter(unit, "mix", 0);
+    }
+};
+
+PioneerDDJFLX4.loadPadFxEffect = function(deckIndex, slotIndex, targetEffect) {
+    const unit = PioneerDDJFLX4.padFx.units[deckIndex];
+    const slotGroup = `${unit}_Effect${slotIndex + 1}`;
+    const available = Math.floor(engine.getValue("[Master]", "num_effectsavailable"));
+
+    if (available <= 1) {
+        return false;
+    }
+
+    const usableEffects = available - 1; // index 0 is the empty/pass-through entry
+    const target = (targetEffect % usableEffects) + 1;
+    let current = Math.floor(engine.getValue(slotGroup, "loaded_effect"));
+
+    if (current < 0 || current >= available) {
+        current = 0;
+    }
+
+    let steps = (target - current + available) % available;
+    while (steps-- > 0) {
+        engine.setValue(slotGroup, "next_effect", 1);
+    }
+
+    engine.setValue(slotGroup, "enabled", 1);
+    engine.setParameter(unit, "mix", 1);
+    return true;
+};
+
+PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, status, group) {
+    const deckIndex = group === "[Channel1]" ? 0 : 1;
+    const mode = (status === 0x97 || status === 0x99) ? 0 : 1;
+    const pad = control - 0x10;
+
+    if (pad < 0 || pad > 7) {
+        return;
+    }
+
+    const key = PioneerDDJFLX4.padFxPadStatus(deckIndex, mode, pad);
+    const existingSlot = PioneerDDJFLX4.findPadFxSlot(deckIndex, key);
+
+    if (value === 0x00) {
+        if (existingSlot >= 0) {
+            PioneerDDJFLX4.releasePadFxSlot(deckIndex, existingSlot);
+        }
+        return;
+    }
+
+    if (existingSlot >= 0) {
+        return;
+    }
+
+    let slotIndex = PioneerDDJFLX4.findFreePadFxSlot(deckIndex);
+
+    if (slotIndex < 0) {
+        // The physical controller offers eight triggers, while Mixxx supplies
+        // three effect slots. Recycle the least-recently pressed active slot
+        // rather than silently doing nothing when a fourth pad is pressed.
+        slotIndex = PioneerDDJFLX4.findOldestPadFxSlot(deckIndex);
+        if (slotIndex >= 0) {
+            PioneerDDJFLX4.releasePadFxSlot(deckIndex, slotIndex);
+        }
+    }
+
+    const effectBankOffset = mode * 8;
+    if (!PioneerDDJFLX4.loadPadFxEffect(deckIndex, slotIndex, effectBankOffset + pad)) {
+        return;
+    }
+
+    PioneerDDJFLX4.padFx.sequence[deckIndex] += 1;
+    PioneerDDJFLX4.padFx.slots[deckIndex][slotIndex] = {
+        key: key,
+        pad: pad,
+        mode: mode,
+        sequence: PioneerDDJFLX4.padFx.sequence[deckIndex],
+    };
+    PioneerDDJFLX4.padFxLight(deckIndex, pad, true);
 };
 
 PioneerDDJFLX4.samplerPadPressed = function(_channel, _control, value, _status, group) {
@@ -1183,6 +1363,17 @@ PioneerDDJFLX4.shutdown = function() {
     // stop any flashing lights
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.beatFx, false);
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.shiftBeatFx, false);
+
+    for (let deckIndex = 0; deckIndex < 2; deckIndex++) {
+        for (let pad = 0; pad < 8; pad++) {
+            PioneerDDJFLX4.padFxLight(deckIndex, pad, false);
+        }
+        PioneerDDJFLX4.padFx.slots[deckIndex].forEach(function(_slot, slotIndex) {
+            const unit = PioneerDDJFLX4.padFx.units[deckIndex];
+            engine.setValue(`${unit}_Effect${slotIndex + 1}`, "enabled", 0);
+        });
+        engine.setParameter(PioneerDDJFLX4.padFx.units[deckIndex], "mix", 0);
+    }
 
     // stop the keepalive timer
     engine.stopTimer(PioneerDDJFLX4.keepAliveTimer);
