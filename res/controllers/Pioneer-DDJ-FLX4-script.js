@@ -195,6 +195,7 @@ PioneerDDJFLX4.shiftButtonDown = [false, false];
 
 // Smart CFX is a global hardware mode; both deck QuickEffectRacks follow it.
 PioneerDDJFLX4.smartCfxEnabled = false;
+PioneerDDJFLX4.smartCfxFilterPreset = [-1, -1];
 
 // Pad FX uses the dedicated EffectUnit 2/3 per deck. Mixxx exposes three
 // effect slots per EffectUnit, so the eight physical pads are treated as an
@@ -273,6 +274,8 @@ PioneerDDJFLX4.toggleLight = function(midiIn, active) {
 
 PioneerDDJFLX4.init = function() {
     engine.setValue("[EffectRack1_EffectUnit1]", "show_focus", 1);
+    PioneerDDJFLX4.initializeSmartCfx();
+    PioneerDDJFLX4.initializeBeatFx();
     PioneerDDJFLX4.initializePadFx();
 
     engine.makeConnection("[Channel1]", "vu_meter", PioneerDDJFLX4.vuMeterUpdate);
@@ -380,54 +383,91 @@ PioneerDDJFLX4.vuMeterUpdate = function(value, group) {
 // Effects
 //
 
+PioneerDDJFLX4.getBeatFxUnit = function() {
+    return "[EffectRack1_EffectUnit1]";
+};
+
+PioneerDDJFLX4.ensureBeatFxFocus = function() {
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
+    let focusedEffect = Math.floor(engine.getValue(unit, "focused_effect"));
+
+    if (focusedEffect < 1) {
+        focusedEffect = 1;
+        engine.setValue(unit, "focused_effect", focusedEffect);
+    }
+
+    return focusedEffect;
+};
+
+PioneerDDJFLX4.focusedFxGroup = function() {
+    return PioneerDDJFLX4.getBeatFxUnit() + "_Effect" + PioneerDDJFLX4.ensureBeatFxFocus();
+};
+
+PioneerDDJFLX4.ensureFocusedBeatFxLoaded = function() {
+    const group = PioneerDDJFLX4.focusedFxGroup();
+    if (engine.getValue(group, "loaded_effect") <= 0) {
+        engine.setValue(group, "next_effect", 1);
+    }
+    return group;
+};
+
+PioneerDDJFLX4.initializeBeatFx = function() {
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
+    PioneerDDJFLX4.ensureBeatFxFocus();
+    PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
+
+    for (let i = 1; i <= 3; i++) {
+        const group = `${unit}_Effect${i}`;
+        engine.softTakeover(group, "meta", true);
+    }
+    engine.softTakeover(unit, "mix", true);
+};
+
 PioneerDDJFLX4.toggleFxLight = function(_value, _group, _control) {
-    const enabled = engine.getValue(PioneerDDJFLX4.focusedFxGroup(), "enabled");
+    const enabled = engine.getValue(PioneerDDJFLX4.focusedFxGroup(), "enabled") > 0;
 
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.beatFx, enabled);
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.shiftBeatFx, enabled);
 };
 
-PioneerDDJFLX4.focusedFxGroup = function() {
-    const focusedFx = engine.getValue("[EffectRack1_EffectUnit1]", "focused_effect");
-    return "[EffectRack1_EffectUnit1_Effect" + focusedFx + "]";
-};
-
 PioneerDDJFLX4.beatFxLevelDepthRotate = function(_channel, _control, value) {
+    const normalized = Math.max(0, Math.min(1, value / 0x7F));
+    const focusedGroup = PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
+
     if (PioneerDDJFLX4.shiftButtonDown[0] || PioneerDDJFLX4.shiftButtonDown[1]) {
-        engine.softTakeoverIgnoreNextValue("[EffectRack1_EffectUnit1]", "mix");
-        engine.setParameter(PioneerDDJFLX4.focusedFxGroup(), "meta", value / 0x7F);
+        engine.softTakeoverIgnoreNextValue(unit, "mix");
+        engine.setValue(focusedGroup, "meta", normalized);
     } else {
-        engine.softTakeoverIgnoreNextValue(PioneerDDJFLX4.focusedFxGroup(), "meta");
-        engine.setParameter("[EffectRack1_EffectUnit1]", "mix", value / 0x7F);
+        engine.softTakeoverIgnoreNextValue(focusedGroup, "meta");
+        engine.setValue(unit, "mix", normalized);
     }
 };
 
 PioneerDDJFLX4.changeFocusedEffectBy = function(numberOfSteps) {
-    let focusedEffect = engine.getValue("[EffectRack1_EffectUnit1]", "focused_effect");
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
+    let focusedEffect = PioneerDDJFLX4.ensureBeatFxFocus() - 1;
+    const numberOfEffectSlots = Math.max(1, Math.floor(engine.getValue(unit, "num_effectslots")) || 3);
 
-    // Convert to zero-based index
-    focusedEffect -= 1;
-
-    // Standard Euclidean modulo by use of two plain modulos
-    const numberOfEffectsPerEffectUnit = 3;
-    focusedEffect = (((focusedEffect + numberOfSteps) % numberOfEffectsPerEffectUnit) + numberOfEffectsPerEffectUnit) % numberOfEffectsPerEffectUnit;
-
-    // Convert back to one-based index
+    focusedEffect = (((focusedEffect + numberOfSteps) % numberOfEffectSlots) + numberOfEffectSlots) % numberOfEffectSlots;
     focusedEffect += 1;
 
-    engine.setValue("[EffectRack1_EffectUnit1]", "focused_effect", focusedEffect);
+    engine.setValue(unit, "focused_effect", focusedEffect);
+    PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
 };
 
 PioneerDDJFLX4.beatFxSelectPressed = function(_channel, _control, value) {
     if (value === 0) { return; }
 
-    engine.setValue(PioneerDDJFLX4.focusedFxGroup(), "next_effect", value);
+    PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
+    engine.setValue(PioneerDDJFLX4.focusedFxGroup(), "next_effect", 1);
 };
 
 PioneerDDJFLX4.beatFxSelectShiftPressed = function(_channel, _control, value) {
     if (value === 0) { return; }
 
-    engine.setValue(PioneerDDJFLX4.focusedFxGroup(), "prev_effect", value);
+    PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
+    engine.setValue(PioneerDDJFLX4.focusedFxGroup(), "prev_effect", 1);
 };
 
 PioneerDDJFLX4.beatFxLeftPressed = function(_channel, _control, value) {
@@ -445,52 +485,114 @@ PioneerDDJFLX4.beatFxRightPressed = function(_channel, _control, value) {
 PioneerDDJFLX4.beatFxOnOffPressed = function(_channel, _control, value) {
     if (value === 0) { return; }
 
-    const toggleEnabled = !engine.getValue(PioneerDDJFLX4.focusedFxGroup(), "enabled");
-    engine.setValue(PioneerDDJFLX4.focusedFxGroup(), "enabled", toggleEnabled);
+    const group = PioneerDDJFLX4.ensureFocusedBeatFxLoaded();
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
+    const currentlyEnabled = engine.getValue(group, "enabled") > 0;
+
+    engine.setValue(group, "enabled", currentlyEnabled ? 0 : 1);
+
+    if (!currentlyEnabled && engine.getValue(unit, "mix") <= 0) {
+        engine.setValue(unit, "mix", 1);
+        engine.softTakeoverIgnoreNextValue(unit, "mix");
+    }
 };
 
 PioneerDDJFLX4.beatFxOnOffShiftPressed = function(_channel, _control, value) {
     if (value === 0) { return; }
 
-    engine.setParameter("[EffectRack1_EffectUnit1]", "mix", 0);
-    engine.softTakeoverIgnoreNextValue("[EffectRack1_EffectUnit1]", "mix");
+    const unit = PioneerDDJFLX4.getBeatFxUnit();
 
     for (let i = 1; i <= 3; i++) {
-        engine.setValue("[EffectRack1_EffectUnit1_Effect" + i + "]", "enabled", 0);
+        engine.setValue(`${unit}_Effect${i}`, "enabled", 0);
     }
+    engine.setValue(unit, "mix", 0);
+    engine.softTakeoverIgnoreNextValue(unit, "mix");
+
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.beatFx, false);
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.shiftBeatFx, false);
 };
 
-PioneerDDJFLX4.beatFxChannel1 = function(_channel, control, value, _status, group) {
-    let enableChannel = 0;
-
-    if (value === 0x7f) { enableChannel = 1; }
-
-    engine.setValue(group, "group_[Channel1]_enable", enableChannel);
+PioneerDDJFLX4.beatFxChannel1 = function(_channel, _control, value, _status, group) {
+    engine.setValue(group, "group_[Channel1]_enable", value === 0x7f ? 1 : 0);
 };
 
-PioneerDDJFLX4.beatFxChannel2 = function(_channel, control, value, _status, group) {
-    let enableChannel = 0;
-
-    if (value === 0x7f) { enableChannel = 1; }
-
-    engine.setValue(group, "group_[Channel2]_enable", enableChannel);
+PioneerDDJFLX4.beatFxChannel2 = function(_channel, _control, value, _status, group) {
+    engine.setValue(group, "group_[Channel2]_enable", value === 0x7f ? 1 : 0);
 };
 
 //
 // Smart CFX
 //
-// Mixxx exposes each deck's Color FX as a QuickEffectRack. The physical FLX4
-// CFX knobs already control QuickEffectRack.super1; this button now provides
-// the corresponding hardware on/off state without introducing a parallel FX
-// engine. When disabled, the current QuickEffect effects remain configured but
-// are bypassed.
+// Quick Effects expose their current chain preset through loaded_chain_preset.
+// We keep the normal filter preset as the OFF state and cycle real Quick Effect
+// chain presets while SMART CFX is active.
+
+PioneerDDJFLX4.initializeSmartCfx = function() {
+    for (let deck = 0; deck < 2; deck++) {
+        const group = `[QuickEffectRack1_[Channel${deck + 1}]]`;
+        let preset = Math.floor(engine.getValue(group, "loaded_chain_preset"));
+
+        if (preset <= 0) {
+            engine.setValue(group, "next_chain_preset", 1);
+            preset = Math.floor(engine.getValue(group, "loaded_chain_preset"));
+        }
+
+        PioneerDDJFLX4.smartCfxFilterPreset[deck] = preset;
+        engine.setValue(group, "enabled", 1);
+        engine.setValue(group, "super1", 0.5);
+    }
+
+    PioneerDDJFLX4.smartCfxEnabled = false;
+    PioneerDDJFLX4.updateSmartCfxLight();
+};
+
+PioneerDDJFLX4.setQuickEffectPreset = function(group, targetPreset) {
+    let current = Math.floor(engine.getValue(group, "loaded_chain_preset"));
+    const count = Math.floor(engine.getValue(group, "num_chain_presets"));
+
+    if (count <= 1 || targetPreset < 0) {
+        return;
+    }
+
+    if (current < 0) {
+        current = 0;
+    }
+
+    targetPreset = targetPreset % count;
+    let guard = count + 1;
+
+    while (current !== targetPreset && guard-- > 0) {
+        const distance = (targetPreset - current + count) % count;
+        const forward = distance <= count / 2;
+        engine.setValue(group, forward ? "next_chain_preset" : "prev_chain_preset", 1);
+        current = Math.floor(engine.getValue(group, "loaded_chain_preset"));
+    }
+};
+
+PioneerDDJFLX4.cycleSmartCfxPreset = function() {
+    for (let deck = 0; deck < 2; deck++) {
+        const group = `[QuickEffectRack1_[Channel${deck + 1}]]`;
+        const count = Math.floor(engine.getValue(group, "num_chain_presets"));
+        const current = Math.floor(engine.getValue(group, "loaded_chain_preset"));
+        if (count > 1 && current >= 0) {
+            const next = (current + 1) % count;
+            const target = next === 0 ? 1 : next;
+            PioneerDDJFLX4.setQuickEffectPreset(group, target);
+        }
+        engine.setValue(group, "enabled", 1);
+        engine.setValue(group, "super1", 0.5);
+    }
+};
+
+PioneerDDJFLX4.restoreSmartCfxFilter = function() {
+    for (let deck = 0; deck < 2; deck++) {
+        const group = `[QuickEffectRack1_[Channel${deck + 1}]]`;
+        PioneerDDJFLX4.setQuickEffectPreset(group, PioneerDDJFLX4.smartCfxFilterPreset[deck]);
+        engine.setValue(group, "enabled", 1);
+    }
+};
 
 PioneerDDJFLX4.updateSmartCfxLight = function() {
-    const deck1Enabled = engine.getValue("[QuickEffectRack1_[Channel1]]", "enabled") > 0;
-    const deck2Enabled = engine.getValue("[QuickEffectRack1_[Channel2]]", "enabled") > 0;
-    PioneerDDJFLX4.smartCfxEnabled = deck1Enabled || deck2Enabled;
     PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.smartCfx, PioneerDDJFLX4.smartCfxEnabled);
 };
 
@@ -499,9 +601,21 @@ PioneerDDJFLX4.smartCfxPressed = function(_channel, _control, value) {
         return;
     }
 
-    const newState = !PioneerDDJFLX4.smartCfxEnabled;
-    engine.setValue("[QuickEffectRack1_[Channel1]]", "enabled", newState);
-    engine.setValue("[QuickEffectRack1_[Channel2]]", "enabled", newState);
+    const shifted = PioneerDDJFLX4.shiftButtonDown[0] || PioneerDDJFLX4.shiftButtonDown[1];
+
+    if (shifted) {
+        if (!PioneerDDJFLX4.smartCfxEnabled) {
+            PioneerDDJFLX4.smartCfxEnabled = true;
+        }
+        PioneerDDJFLX4.cycleSmartCfxPreset();
+    } else if (PioneerDDJFLX4.smartCfxEnabled) {
+        PioneerDDJFLX4.smartCfxEnabled = false;
+        PioneerDDJFLX4.restoreSmartCfxFilter();
+    } else {
+        PioneerDDJFLX4.smartCfxEnabled = true;
+        PioneerDDJFLX4.cycleSmartCfxPreset();
+    }
+
     PioneerDDJFLX4.updateSmartCfxLight();
 };
 
