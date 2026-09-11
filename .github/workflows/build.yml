@@ -7,7 +7,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fix/qml-drag-crash-unanalysed-load]
+    branches: [main]
 
 permissions:
   contents: read
