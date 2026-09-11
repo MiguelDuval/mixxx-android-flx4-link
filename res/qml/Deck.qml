@@ -70,7 +70,7 @@ Item {
                     "type": "row",
                     "items": [
                         {
-                            "type": "column",
+                            "type": "waveformColumn",
                             "items": [
                                 {
                                     "type": "waveformOverview"
@@ -392,6 +392,15 @@ Item {
 
             LayoutContainer {
                 Layout.fillWidth: true
+                disposition: GridLayout.TopToBottom
+            }
+        }
+        DelegateChoice {
+            roleValue: "waveformColumn"
+
+            LayoutContainer {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 disposition: GridLayout.TopToBottom
             }
         }
