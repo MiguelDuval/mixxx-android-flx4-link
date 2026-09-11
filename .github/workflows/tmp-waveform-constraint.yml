@@ -1,0 +1,67 @@
+name: Waveform constraint experiment
+
+on:
+  push:
+    branches:
+      - experiment/waveform-constraint-2026-09-11
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Apply and verify minimal waveform layout constraint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          deck = Path("res/qml/Deck.qml")
+          text = deck.read_text(encoding="utf-8")
+
+          old_model = '''                                {\n                                    "type": "waveformOverview"\n                                },\n                                {\n                                    "type": "row",\n                                    "items": [\n                                        {\n                                            "type": "column",\n                                            "items": [\n                                                {\n                                                    "type": "play"\n                                                },\n                                                {\n                                                    "type": "cue"\n                                                }\n                                            ]\n                                        },'''
+          new_model = old_model.replace('"type": "row"', '"type": "controlRow"', 1)
+          if text.count(old_model) != 1:
+              raise SystemExit(f"expected one control-row model block, found {text.count(old_model)}")
+          text = text.replace(old_model, new_model, 1)
+
+          old_delegate = '''        DelegateChoice {\n            roleValue: "row"\n\n            LayoutContainer {\n                Layout.fillHeight: true\n                disposition: GridLayout.LeftToRight\n            }\n        }'''
+          new_delegate = old_delegate + '''\n        DelegateChoice {\n            roleValue: "controlRow"\n\n            LayoutContainer {\n                Layout.fillHeight: false\n                Layout.minimumHeight: 120\n                Layout.preferredHeight: 120\n                Layout.maximumHeight: 120\n                disposition: GridLayout.LeftToRight\n            }\n        }'''
+          if text.count(old_delegate) != 1:
+              raise SystemExit(f"expected one generic row delegate, found {text.count(old_delegate)}")
+          text = text.replace(old_delegate, new_delegate, 1)
+
+          deck.write_text(text, encoding="utf-8")
+
+          build = Path(".github/workflows/build.yml")
+          b = build.read_text(encoding="utf-8")
+          old = '    branches: [main]\n'
+          new = '    branches: [main, experiment/waveform-constraint-2026-09-11]\n'
+          if b.count(old) != 1:
+              raise SystemExit(f"expected one Android build branch selector, found {b.count(old)}")
+          build.write_text(b.replace(old, new, 1), encoding="utf-8")
+          PY
+
+          git diff --check
+          git diff -- res/qml/Deck.qml .github/workflows/build.yml
+
+          test "$(grep -c 'roleValue: \"controlRow\"' res/qml/Deck.qml)" -eq 1
+          test "$(grep -c 'Layout.maximumHeight: 120' res/qml/Deck.qml)" -eq 1
+          test "$(grep -c 'type": "controlRow"' res/qml/Deck.qml)" -eq 1
+
+      - name: Commit experiment and remove temporary patch workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/tmp-waveform-constraint.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/qml/Deck.qml .github/workflows/build.yml .github/workflows/tmp-waveform-constraint.yml
+          git commit -m $'experiment(android): constrain deck control row for waveform test\n\nAI-generated change for human review only.\nAI-generated change for human review only ends here.'
+          git push origin HEAD:experiment/waveform-constraint-2026-09-11
