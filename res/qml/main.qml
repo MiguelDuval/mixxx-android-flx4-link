@@ -20,42 +20,6 @@ ApplicationWindow {
     visible: true
     width: isMobile ? Screen.width : designWidth
 
-    // These are the actual Mixxx engine commands for the two Android decks.
-    // beats_translate_curpos is the native BeatGrid action: move the closest
-    // beat onto the current play position.
-    Mixxx.ControlProxy {
-        id: bitgrid1Action
-        group: "[Channel1]"
-        key: "beats_translate_curpos"
-    }
-
-    Mixxx.ControlProxy {
-        id: bitgrid2Action
-        group: "[Channel2]"
-        key: "beats_translate_curpos"
-    }
-
-    // Live engine feedback. beat_distance is maintained by BpmControl and is
-    // a much stronger verification than merely changing the button color.
-    Mixxx.ControlProxy {
-        id: bitgrid1Phase
-        group: "[Channel1]"
-        key: "beat_distance"
-    }
-
-    Mixxx.ControlProxy {
-        id: bitgrid2Phase
-        group: "[Channel2]"
-        key: "beat_distance"
-    }
-
-    function phaseText(proxy) {
-        if (!proxy.initialized) {
-            return "OFFLINE";
-        }
-        return (Math.abs(proxy.value) * 100).toFixed(1) + "% phase";
-    }
-
     function updateVisibility() {
         if (!Mixxx.Core.ready) {
             return;
@@ -76,9 +40,7 @@ ApplicationWindow {
 
     Loader {
         id: content
-
         anchors.fill: parent
-
         active: Mixxx.Core.ready
         asynchronous: true
         onStatusChanged: {
@@ -94,109 +56,20 @@ ApplicationWindow {
         }
     }
 
-    Rectangle {
-        id: bitgridStrip
-
+    // IMPORTANT: this Loader is deliberately created only after Mixxx.Core is
+    // ready and MainWindow has loaded. ControlProxy objects inside
+    // BitGridOverlay therefore see the already-created engine controls.
+    Loader {
+        id: bitgridOverlay
         anchors.left: parent.left
         anchors.leftMargin: 270
         anchors.top: parent.top
-        color: "#151515"
-        height: 44
-        visible: root.isMobile && content.status === Loader.Ready
+        active: root.isMobile && Mixxx.Core.ready && content.status === Loader.Ready
+        asynchronous: false
         width: 220
+        height: 44
         z: 100000
-
-        Row {
-            anchors.fill: parent
-            anchors.margins: 4
-            spacing: 4
-
-            Rectangle {
-                color: bitgrid1MouseArea.pressed ? "#00a8cc" : "#3a3a3a"
-                height: parent.height - 8
-                radius: 3
-                width: 102
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 1
-
-                    Text {
-                        color: "white"
-                        font.bold: true
-                        font.family: "Open Sans"
-                        font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: "BITGRID 1"
-                        width: 102
-                    }
-                    Text {
-                        color: "#b8eaff"
-                        font.family: "Open Sans"
-                        font.pixelSize: 9
-                        horizontalAlignment: Text.AlignHCenter
-                        text: root.phaseText(bitgrid1Phase)
-                        width: 102
-                    }
-                }
-
-                MouseArea {
-                    id: bitgrid1MouseArea
-                    anchors.fill: parent
-                    onClicked: {
-                        console.log("[BitGrid] BITGRID 1 clicked; initialized=" + bitgrid1Action.initialized + ", phase=" + bitgrid1Phase.value);
-                        if (bitgrid1Action.initialized) {
-                            bitgrid1Action.trigger();
-                        } else {
-                            console.warn("[BitGrid] BITGRID 1 action is not initialized");
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                color: bitgrid2MouseArea.pressed ? "#00a8cc" : "#3a3a3a"
-                height: parent.height - 8
-                radius: 3
-                width: 102
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 1
-
-                    Text {
-                        color: "white"
-                        font.bold: true
-                        font.family: "Open Sans"
-                        font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: "BITGRID 2"
-                        width: 102
-                    }
-                    Text {
-                        color: "#b8eaff"
-                        font.family: "Open Sans"
-                        font.pixelSize: 9
-                        horizontalAlignment: Text.AlignHCenter
-                        text: root.phaseText(bitgrid2Phase)
-                        width: 102
-                    }
-                }
-
-                MouseArea {
-                    id: bitgrid2MouseArea
-                    anchors.fill: parent
-                    onClicked: {
-                        console.log("[BitGrid] BITGRID 2 clicked; initialized=" + bitgrid2Action.initialized + ", phase=" + bitgrid2Phase.value);
-                        if (bitgrid2Action.initialized) {
-                            bitgrid2Action.trigger();
-                        } else {
-                            console.warn("[BitGrid] BITGRID 2 action is not initialized");
-                        }
-                    }
-                }
-            }
-        }
+        source: "BitGridOverlay.qml"
     }
 
     Rectangle {
@@ -207,14 +80,11 @@ ApplicationWindow {
 
         property bool ready: false
 
-        Component.onCompleted: {
-            ready = true
-        }
+        Component.onCompleted: ready = true
 
         states: [
             State {
                 when: splash.ready && content.status != Loader.Ready
-
                 PropertyChanges {
                     text.opacity: 1
                     logo.opacity: 1
@@ -222,33 +92,31 @@ ApplicationWindow {
                 }
             },
             State {
-                when: content.status == Loader.Ready && content.active
-
+                when: content.status === Loader.Ready && content.active
                 PropertyChanges {
                     splash.opacity: 0
                 }
             }
         ]
+
         Image {
             id: logo
             anchors.horizontalCenter: parent.horizontalCenter
             source: "qrc:/images/mixxx-icon-logo-symbolic.svg"
-            // height: 64
             opacity: 0
             y: root.height / 2
-
             Behavior on opacity {
                 NumberAnimation { duration: 1500; easing.type: Easing.InOutQuad }
             }
-
             Behavior on y {
                 NumberAnimation { duration: 1500; easing.type: Easing.InOutQuad }
             }
         }
+
         Text {
             id: text
             opacity: 0
-            y: logo.y + logo.height*2
+            y: logo.y + logo.height * 2
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.topMargin: 20
             font.pixelSize: 12
