@@ -219,6 +219,19 @@ Item {
                 }
             }
         }
+        Loader {
+            id: effectsPanel
+
+            active: root.showEffects && !root.maximizeLibrary
+            height: active && item ? item.implicitHeight : 0
+            width: parent.width
+
+            sourceComponent: Component {
+                Skin.PadFxPanel {
+                    anchors.fill: parent
+                }
+            }
+        }
         SplitView {
             id: splitView
 
@@ -676,23 +689,6 @@ Item {
                         top: mixer.bottom
                     }
                 }
-            }
-        }
-    }
-    Loader {
-        id: effectsOverlay
-
-        active: root.showEffects && !root.maximizeLibrary
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: toolbar.bottom
-        height: item ? Math.min(item.implicitHeight, parent.height - toolbar.height) : 0
-        visible: item !== null
-        z: 100
-
-        sourceComponent: Component {
-            Skin.EffectRow {
-                anchors.fill: parent
             }
         }
     }
