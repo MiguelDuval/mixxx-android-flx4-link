@@ -62,6 +62,6 @@ jobs:
           rm -f .github/workflows/tmp-waveform-constraint.yml .waveform-experiment-trigger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add res/qml/Deck.qml .github/workflows/build.yml .github/workflows/tmp-waveform-constraint.yml .waveform-experiment-trigger
+          git add -A
           git commit -m $'experiment(android): constrain deck control row for waveform test\n\nAI-generated change for human review only.\nAI-generated change for human review only ends here.'
           git push origin HEAD:experiment/waveform-constraint-2026-09-11
