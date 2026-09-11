@@ -1,0 +1,48 @@
+name: Waveform parent fill-height experiment
+
+on:
+  push:
+    branches:
+      - experiment/waveform-parent-fillheight-2026-09-11
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Apply isolated parent fill-height change
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('res/qml/Deck.qml')
+          s = p.read_text(encoding='utf-8')
+          old = '''                        {\n                            "type": "column",\n                            "items": [\n                                {\n                                    "type": "waveformOverview"\n                                },'''
+          new = old.replace('"type": "column"', '"type": "waveformColumn"', 1)
+          if s.count(old) != 1:
+              raise SystemExit(f'expected exactly one waveform parent block, got {s.count(old)}')
+          s = s.replace(old, new, 1)
+          marker = '''        DelegateChoice {\n            roleValue: "column"\n\n            LayoutContainer {\n                Layout.fillWidth: true\n                disposition: GridLayout.TopToBottom\n            }\n        }'''
+          addition = marker + '''\n        DelegateChoice {\n            roleValue: "waveformColumn"\n\n            LayoutContainer {\n                Layout.fillWidth: true\n                Layout.fillHeight: true\n                disposition: GridLayout.TopToBottom\n            }\n        }'''
+          if s.count(marker) != 1:
+              raise SystemExit(f'expected exactly one generic column delegate, got {s.count(marker)}')
+          s = s.replace(marker, addition, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+          git diff --check
+          test "$(grep -c 'roleValue: \"waveformColumn\"' res/qml/Deck.qml)" -eq 1
+          test "$(grep -c 'type": "waveformColumn"' res/qml/Deck.qml)" -eq 1
+      - name: Commit source experiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/tmp-waveform-parent-fillheight.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add res/qml/Deck.qml
+          git commit -m $'experiment(android): fill waveform parent vertically\n\nAI-generated change for human review only.\nAI-generated change for human review only ends here.'
+          git push origin HEAD:experiment/waveform-parent-fillheight-2026-09-11
