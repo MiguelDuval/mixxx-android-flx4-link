@@ -6,11 +6,11 @@ import "Theme"
 Item {
     id: root
 
-    property int activeDeck: 0
-    property bool panelOpen: false
-
     anchors.fill: parent
     z: 100000
+
+    property int activeDeck: 0
+    property bool panelOpen: false
 
     Mixxx.ControlProxy { id: trackLoaded1; group: "[Channel1]"; key: "track_loaded" }
     Mixxx.ControlProxy { id: trackLoaded2; group: "[Channel2]"; key: "track_loaded" }
@@ -23,7 +23,6 @@ Item {
     Mixxx.ControlProxy { id: undoPossible1; group: "[Channel1]"; key: "beats_undo_possible" }
     Mixxx.ControlProxy { id: undoPossible2; group: "[Channel2]"; key: "beats_undo_possible" }
 
-    // Native Mixxx BeatGrid actions. QML is only the UI layer.
     Mixxx.ControlProxy { id: faster1; group: "[Channel1]"; key: "beats_adjust_faster" }
     Mixxx.ControlProxy { id: slower1; group: "[Channel1]"; key: "beats_adjust_slower" }
     Mixxx.ControlProxy { id: earlier1; group: "[Channel1]"; key: "beats_translate_earlier" }
@@ -101,23 +100,29 @@ Item {
         panelOpen = false;
     }
 
+    // Visually integrated with MainWindow's normal 36px toolbar:
+    // five existing toolbar buttons occupy 0..260px, so BitGrid starts at 260px.
+    // Match the same 52x26 Skin.Button size instead of the former diagnostic blocks.
     Row {
         id: entryBar
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: 270
-        anchors.topMargin: 4
-        spacing: 4
+        x: 260
+        y: 5
+        spacing: 0
         z: 3
+        visible: !root.panelOpen
 
         Skin.Button {
-            width: 108; height: 44; text: "BITGRID 1"
-            highlight: root.panelOpen && root.activeDeck === 1
+            width: 52
+            height: 26
+            activeColor: Theme.white
+            text: "BitGrid 1"
             onClicked: root.open(1)
         }
         Skin.Button {
-            width: 108; height: 44; text: "BITGRID 2"
-            highlight: root.panelOpen && root.activeDeck === 2
+            width: 52
+            height: 26
+            activeColor: Theme.white
+            text: "BitGrid 2"
             onClicked: root.open(2)
         }
     }
@@ -187,7 +192,6 @@ Item {
             }
 
             Text { color: Theme.lightGray3; font.bold: true; font.family: Theme.fontFamily; font.pixelSize: 12; text: "GRID PHASE" }
-
             Row {
                 width: parent.width; height: 42; spacing: 6
                 Skin.Button { width: (parent.width - 18) / 4; height: 42; text: "EARLIER"; enabled: root.canEdit; autoRepeat: true; onClicked: root.deck.earlier.trigger() }
@@ -203,7 +207,6 @@ Item {
             }
 
             Text { color: Theme.lightGray3; font.bold: true; font.family: Theme.fontFamily; font.pixelSize: 12; text: "BPM INTERPRETATION" }
-
             Flow {
                 width: parent.width; height: 92; spacing: 6
                 Skin.Button { width: (parent.width - 18) / 4; height: 42; text: "½×"; enabled: root.canEdit; onClicked: root.deck.halve.trigger() }
