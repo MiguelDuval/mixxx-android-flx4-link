@@ -27,18 +27,18 @@ jobs:
           p = Path("res/qml/Deck.qml")
           s = p.read_text()
           replacements = [
-              ("Layout.preferredHeight: root.minimized ? 28 : 56", "Layout.preferredHeight: root.minimized ? 28 : 44"),
-              ("height: 92\n\n                DeckComponent.Loop", "height: 64\n\n                DeckComponent.Loop"),
-              ("height: 92\n\n                DeckComponent.BeatJump", "height: 64\n\n                DeckComponent.BeatJump"),
-              ("Layout.preferredHeight: root.minimized ? 32 : 60", "Layout.preferredHeight: root.minimized ? 32 : 48"),
-              ("height: 140\n                width: 140", "height: 112\n                width: 112"),
-              ("height: 92\n\n                DeckComponent.HotcueAndStem", "height: 68\n\n                DeckComponent.HotcueAndStem"),
+              ("Layout.preferredHeight: root.minimized ? 28 : 56", "Layout.preferredHeight: root.minimized ? 28 : 44", 1),
+              ("height: 92\n\n                DeckComponent.Loop", "height: 64\n\n                DeckComponent.Loop", 1),
+              ("height: 92\n\n                DeckComponent.BeatJump", "height: 64\n\n                DeckComponent.BeatJump", 1),
+              ("Layout.preferredHeight: root.minimized ? 32 : 60", "Layout.preferredHeight: root.minimized ? 32 : 48", 2),
+              ("height: 140\n                width: 140", "height: 112\n                width: 112", 1),
+              ("height: 92\n\n                DeckComponent.HotcueAndStem", "height: 68\n\n                DeckComponent.HotcueAndStem", 1),
           ]
-          for old, new in replacements:
+          for old, new, expected in replacements:
               count = s.count(old)
-              if count != 1:
-                  raise SystemExit(f"Expected exactly one occurrence, found {count}: {old!r}")
-              s = s.replace(old, new, 1)
+              if count != expected:
+                  raise SystemExit(f"Expected {expected} occurrences, found {count}: {old!r}")
+              s = s.replace(old, new, expected)
 
           marker = '''            LayoutItem {
                 Layout.fillHeight: true
@@ -71,7 +71,7 @@ jobs:
           git diff --stat
           git diff -- res/qml/Deck.qml
 
-      - name: Commit patch and remove one-shot workflows
+      - name: Commit patch and remove one-shot workflow
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
