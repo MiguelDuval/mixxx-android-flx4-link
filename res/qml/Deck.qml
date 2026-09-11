@@ -76,7 +76,7 @@ Item {
                                     "type": "waveformOverview"
                                 },
                                 {
-                                    "type": "row",
+                                    "type": "controlRow",
                                     "items": [
                                         {
                                             "type": "column",
@@ -384,6 +384,17 @@ Item {
 
             LayoutContainer {
                 Layout.fillHeight: true
+                disposition: GridLayout.LeftToRight
+            }
+        }
+        DelegateChoice {
+            roleValue: "controlRow"
+
+            LayoutContainer {
+                Layout.fillHeight: false
+                Layout.minimumHeight: 120
+                Layout.preferredHeight: 120
+                Layout.maximumHeight: 120
                 disposition: GridLayout.LeftToRight
             }
         }
