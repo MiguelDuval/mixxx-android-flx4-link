@@ -1,0 +1,22 @@
+name: Apply FX repair twice
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.actor == 'MiguelDuval'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/apply_fx_repair_patch2.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/controllers/Pioneer-DDJ-FLX4-script.js
+          git rm -f tools/apply_fx_repair_patch.py tools/apply_fx_repair_patch2.py .github/workflows/apply-fx-repair.yml .github/workflows/apply-fx-repair2.yml
+          git commit -m "Restore Beat FX and correct Smart CFX controls"
+          git push origin HEAD:main
