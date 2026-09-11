@@ -7,7 +7,7 @@ name: Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, experiment/waveform-parent-fillheight-2026-09-11]
 
 permissions:
   contents: read
