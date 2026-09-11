@@ -208,6 +208,7 @@ PioneerDDJFLX4.padFx = {
     ],
     slots: [[], []],
     sequence: [0, 0],
+    mode: [0, 0],
 };
 
 // Jog wheel loop adjust
@@ -867,13 +868,35 @@ PioneerDDJFLX4.setPadModeLight = function(deck, modeControl) {
     }
 };
 
-PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
+PioneerDDJFLX4.clearPadFxDeck = function(deckIndex) {
+    const unit = PioneerDDJFLX4.padFx.units[deckIndex];
+    const slots = PioneerDDJFLX4.padFx.slots[deckIndex];
+    for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+        engine.setValue(`${unit}_Effect${slotIndex + 1}`, "enabled", 0);
+    }
+    engine.setParameter(unit, "mix", 0);
+    slots.forEach(function(slotState) {
+        if (slotState) {
+            PioneerDDJFLX4.padFxLight(deckIndex, slotState.pad, false);
+        }
+    });
+    PioneerDDJFLX4.padFx.slots[deckIndex] = [];
+};
+
+PioneerDDJFLX4.padModeKeyPressed = function(_channel, control, value, status, _group) {
     if (value === 0) {
         return;
     }
-
-    const deck = (_status === 0x90 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
-    PioneerDDJFLX4.setPadModeLight(deck, _control);
+    const deckIndex = status === 0x90 ? 0 : 1;
+    const deck = deckIndex === 0 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2;
+    PioneerDDJFLX4.setPadModeLight(deck, control);
+    if (control === 0x1E) {
+        PioneerDDJFLX4.padFx.mode[deckIndex] = 0;
+        PioneerDDJFLX4.clearPadFxDeck(deckIndex);
+    } else if (control === 0x6B) {
+        PioneerDDJFLX4.padFx.mode[deckIndex] = 1;
+        PioneerDDJFLX4.clearPadFxDeck(deckIndex);
+    }
 };
 
 PioneerDDJFLX4.initializePadFx = function() {
@@ -885,6 +908,7 @@ PioneerDDJFLX4.initializePadFx = function() {
         engine.setValue(unit, "show_focus", 1);
         engine.setValue(unit, "group_" + channel + "_enable", 1);
         engine.setValue(unit, "group_" + otherChannel + "_enable", 0);
+        PioneerDDJFLX4.padFx.mode[deckIndex] = 0;
         engine.setParameter(unit, "mix", 0);
 
         for (let slot = 1; slot <= 3; slot++) {
@@ -979,9 +1003,9 @@ PioneerDDJFLX4.loadPadFxEffect = function(deckIndex, slotIndex, targetEffect) {
     return true;
 };
 
-PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, status, group) {
+PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, _status, group) {
     const deckIndex = group === "[Channel1]" ? 0 : 1;
-    const mode = (status === 0x97 || status === 0x99) ? 0 : 1;
+    const mode = PioneerDDJFLX4.padFx.mode[deckIndex];
     const pad = control - 0x10;
 
     if (pad < 0 || pad > 7) {
