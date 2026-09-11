@@ -1,0 +1,115 @@
+name: Apply PadFX mobile repair
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Apply reviewed PadFX/UI repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          main = Path('res/qml/MainWindow.qml')
+          text = main.read_text()
+
+          overlay = '''    Loader {\n        id: effectsOverlay\n\n        active: root.showEffects && !root.maximizeLibrary\n        anchors.left: parent.left\n        anchors.right: parent.right\n        anchors.top: toolbar.bottom\n        height: item ? Math.min(item.implicitHeight, parent.height - toolbar.height) : 0\n        visible: item !== null\n        z: 100\n\n        sourceComponent: Component {\n            Skin.EffectRow {\n                anchors.fill: parent\n            }\n        }\n    }\n'''
+          if overlay in text:
+              text = text.replace(overlay, '', 1)
+
+          split_marker = '        SplitView {\n            id: splitView\n'
+          panel = '''        Loader {\n            id: effectsPanel\n\n            active: root.showEffects && !root.maximizeLibrary\n            height: active && item ? item.implicitHeight : 0\n            width: parent.width\n\n            sourceComponent: Component {\n                Skin.PadFxPanel {\n                    anchors.fill: parent\n                }\n            }\n        }\n'''
+          if 'id: effectsPanel' not in text:
+              if split_marker not in text:
+                  raise SystemExit('MainWindow SplitView marker not found')
+              text = text.replace(split_marker, panel + split_marker, 1)
+
+          if 'id: effectsOverlay' in text:
+              raise SystemExit('Old Effects overlay remains')
+          if text.count('id: effectsPanel') != 1:
+              raise SystemExit('Effects panel insertion count is not exactly one')
+          main.write_text(text)
+
+          js = Path('res/controllers/Pioneer-DDJ-FLX4-script.js')
+          j = js.read_text()
+
+          old_init = re.search(r'PioneerDDJFLX4\.initializePadFx = function\(\) \{.*?\n\};', j, re.S)
+          if not old_init:
+              raise SystemExit('initializePadFx function not found')
+          new_init = '''PioneerDDJFLX4.initializePadFx = function() {\n    for (let deckIndex = 0; deckIndex < 2; deckIndex++) {\n        const unit = PioneerDDJFLX4.padFx.units[deckIndex];\n        const channel = `[Channel${deckIndex + 1}]`;\n        const otherChannel = `[Channel${deckIndex === 0 ? 2 : 1}]`;\n        const chainCount = Math.floor(engine.getValue(unit, "num_chain_presets"));\n        const loaded = engine.getValue(unit, "loaded") > 0;\n        const loadedPreset = Math.floor(engine.getValue(unit, "loaded_chain_preset"));\n\n        engine.setValue(unit, "show_focus", 1);\n        engine.setValue(unit, "group_" + channel + "_enable", 1);\n        engine.setValue(unit, "group_" + otherChannel + "_enable", 0);\n\n        // Empty/passthrough is preset 0. Use the documented preset selector\n        // instead of the legacy chain control so the unit always has a real\n        // effect chain before the pads try to select individual effects.\n        if (chainCount > 1 && (!loaded || loadedPreset === 0)) {\n            engine.setValue(unit, "chain_preset_selector", 1);\n        }\n\n        engine.setValue(unit, "enabled", 1);\n        PioneerDDJFLX4.padFx.mode[deckIndex] = 0;\n        engine.setParameter(unit, "mix", 0);\n\n        for (let slot = 1; slot <= 3; slot++) {\n            engine.setValue(`${unit}_Effect${slot}`, "enabled", 0);\n        }\n    }\n};'''
+          j = j[:old_init.start()] + new_init + j[old_init.end():]
+
+          old_light = re.search(r'PioneerDDJFLX4\.padFxLight = function\(.*?\n\};', j, re.S)
+          if not old_light:
+              raise SystemExit('padFxLight function not found')
+          new_light = '''PioneerDDJFLX4.padFxLight = function(deckIndex, pad, active, mode) {\n    const status = deckIndex === 0 ? 0x97 + mode : 0x99 + mode;\n    midi.sendShortMsg(status, 0x10 + pad, active ? 0x7F : 0x00);\n};'''
+          j = j[:old_light.start()] + new_light + j[old_light.end():]
+
+          j = j.replace('PioneerDDJFLX4.padFxLight(deckIndex, slotState.pad, false);', 'PioneerDDJFLX4.padFxLight(deckIndex, slotState.pad, false, slotState.mode);')
+          j = j.replace('PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, _status, group) {', 'PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, status, group) {')
+
+          old_loader = re.search(r'PioneerDDJFLX4\.loadPadFxEffect = function\(.*?\n\};', j, re.S)
+          if not old_loader:
+              raise SystemExit('loadPadFxEffect function not found')
+          new_loader = '''PioneerDDJFLX4.loadPadFxEffect = function(deckIndex, slotIndex, targetEffect) {\n    if (slotIndex < 0 || slotIndex > 2) {\n        return false;\n    }\n\n    const unit = PioneerDDJFLX4.padFx.units[deckIndex];\n    const slotGroup = `${unit}_Effect${slotIndex + 1}`;\n    const available = Math.floor(engine.getValue("[Master]", "num_effectsavailable"));\n\n    // Effect index 0 is the empty/passthrough entry. Select one of the actual\n    // installed effects and move from the slot's current effect by the shortest\n    // path. This avoids repeatedly clearing and scanning the full effect list.\n    if (available < 2) {\n        return false;\n    }\n\n    const usableEffects = available - 1;\n    const desired = 1 + ((((targetEffect % usableEffects) + usableEffects) % usableEffects));\n    let current = Math.floor(engine.getValue(slotGroup, "loaded_effect"));\n    if (current < 0 || current >= available) {\n        current = 0;\n    }\n\n    if (current !== desired) {\n        const forward = (desired - current + available) % available;\n        const backward = (current - desired + available) % available;\n        const control = forward <= backward ? "next_effect" : "prev_effect";\n        const steps = Math.min(forward, backward);\n\n        for (let step = 0; step < steps; step++) {\n            engine.setValue(slotGroup, control, 1);\n        }\n    }\n\n    engine.setValue(slotGroup, "enabled", 1);\n    engine.setValue(unit, "enabled", 1);\n    engine.setParameter(unit, "mix", 1);\n    return engine.getValue(slotGroup, "loaded_effect") === desired;\n};'''
+          j = j[:old_loader.start()] + new_loader + j[old_loader.end():]
+
+          old_press = re.search(r'PioneerDDJFLX4\.padFxPadPressed = function\(.*?\n\};', j, re.S)
+          if not old_press:
+              raise SystemExit('padFxPadPressed function not found')
+          new_press = '''PioneerDDJFLX4.padFxPadPressed = function(_channel, control, value, status, group) {\n    const deckIndex = group === "[Channel1]" ? 0 : 1;\n    const mode = (status === 0x98 || status === 0x9A) ? 1 : 0;\n    const pad = control - 0x10;\n\n    if (pad < 0 || pad > 7) {\n        return;\n    }\n\n    const key = PioneerDDJFLX4.padFxPadStatus(deckIndex, mode, pad);\n    const existingSlot = PioneerDDJFLX4.findPadFxSlot(deckIndex, key);\n\n    if (value === 0x00) {\n        if (existingSlot >= 0) {\n            PioneerDDJFLX4.releasePadFxSlot(deckIndex, existingSlot);\n        }\n        return;\n    }\n\n    if (existingSlot >= 0) {\n        return;\n    }\n\n    let slotIndex = PioneerDDJFLX4.findFreePadFxSlot(deckIndex);\n\n    if (slotIndex < 0) {\n        // The FLX4 has eight physical triggers, while Mixxx gives this unit\n        // three effect slots. Recycle the oldest active trigger when needed.\n        slotIndex = PioneerDDJFLX4.findOldestPadFxSlot(deckIndex);\n        if (slotIndex >= 0) {\n            PioneerDDJFLX4.releasePadFxSlot(deckIndex, slotIndex);\n        }\n    }\n\n    if (slotIndex < 0) {\n        return;\n    }\n\n    const effectBankOffset = mode * 8;\n    if (!PioneerDDJFLX4.loadPadFxEffect(deckIndex, slotIndex, effectBankOffset + pad)) {\n        return;\n    }\n\n    PioneerDDJFLX4.padFx.sequence[deckIndex] += 1;\n    PioneerDDJFLX4.padFx.slots[deckIndex][slotIndex] = {\n        key: key,\n        pad: pad,\n        mode: mode,\n        sequence: PioneerDDJFLX4.padFx.sequence[deckIndex],\n    };\n    PioneerDDJFLX4.padFxLight(deckIndex, pad, true, mode);\n};'''
+          j = j[:old_press.start()] + new_press + j[old_press.end():]
+
+          # The previous implementation left the controller's FX mode LEDs
+          # ambiguous. Keep the software mode synchronized with the physical bank.
+          if 'loaded_effect' not in j:
+              raise SystemExit('loaded_effect control missing after repair')
+          if 'chain_preset_selector' not in j:
+              raise SystemExit('chain_preset_selector missing after repair')
+          if 'next_chain' in re.search(r'PioneerDDJFLX4\.initializePadFx = function\(\) \{.*?\n\};', j, re.S).group(0):
+              raise SystemExit('legacy next_chain remains in initializePadFx')
+
+          js.write_text(j)
+          PY
+
+          git diff --check
+          python3 - <<'PY'
+          from pathlib import Path
+          main = Path('res/qml/MainWindow.qml').read_text()
+          panel = Path('res/qml/PadFxPanel.qml').read_text()
+          js = Path('res/controllers/Pioneer-DDJ-FLX4-script.js').read_text()
+          assert 'id: effectsOverlay' not in main
+          assert 'Skin.PadFxPanel' in main
+          assert 'id: effectsPanel' in main
+          assert 'chain_preset_selector' in js
+          assert 'loaded_effect' in js
+          assert 'num_effectsavailable' in js
+          assert 'prev_effect' in js
+          assert 'padFxLight(deckIndex, slotState.pad, false, slotState.mode);' in js
+          assert 'padFxLight(deckIndex, pad, true, mode);' in js
+          assert 'PAD FX • DECK 1' in panel and 'PAD FX • DECK 2' in panel
+          print('REPAIR CHECKS: PASS')
+          PY
+
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/qml/MainWindow.qml res/qml/PadFxPanel.qml res/controllers/Pioneer-DDJ-FLX4-script.js
+          git rm -f .github/workflows/apply-padfx-mobile-repair.yml
+          git commit -m "Refine mobile PadFX panel and reliable effect selection"
+          git push origin HEAD:main
