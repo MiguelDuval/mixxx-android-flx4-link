@@ -42,13 +42,20 @@
 //        * Pad FX1
 //        * Pad FX2
 //
+//  Implemented in this Android port:
+//      * Smart CFX button -> both channel QuickEffectRacks enabled state
+//        (the existing CFX knobs continue to drive QuickEffectRack.super1)
+//
 //  Not implemented yet (but might be in the future):
-//      * Smart CFX
 //      * Smart fader
 
 var PioneerDDJFLX4 = {};
 
 PioneerDDJFLX4.lights = {
+    smartCfx: {
+        status: 0x96,
+        data1: 0x00,
+    },
     beatFx: {
         status: 0x94,
         data1: 0x47,
@@ -188,6 +195,9 @@ PioneerDDJFLX4.tempoRanges = [0.06, 0.10, 0.16, 0.25];
 
 PioneerDDJFLX4.shiftButtonDown = [false, false];
 
+// Smart CFX is a global hardware mode; both deck QuickEffectRacks follow it.
+PioneerDDJFLX4.smartCfxEnabled = false;
+
 // Jog wheel loop adjust
 PioneerDDJFLX4.loopAdjustIn = [false, false];
 PioneerDDJFLX4.loopAdjustOut = [false, false];
@@ -291,6 +301,12 @@ PioneerDDJFLX4.init = function() {
         engine.makeConnection("[EffectRack1_EffectUnit1_Effect" + i +"]", "enabled", PioneerDDJFLX4.toggleFxLight);
     }
     engine.makeConnection("[EffectRack1_EffectUnit1]", "focused_effect", PioneerDDJFLX4.toggleFxLight);
+
+    // Smart CFX uses the existing per-deck QuickEffectRacks. Keep the hardware
+    // button LED synchronized with the effective state of both channels.
+    engine.makeConnection("[QuickEffectRack1_[Channel1]]", "enabled", PioneerDDJFLX4.updateSmartCfxLight);
+    engine.makeConnection("[QuickEffectRack1_[Channel2]]", "enabled", PioneerDDJFLX4.updateSmartCfxLight);
+    PioneerDDJFLX4.updateSmartCfxLight();
 
     // Register callbacks for each deck, when a file is loaded and the number of stems is available
     engine.makeConnection("[Channel1]", "stem_count", PioneerDDJFLX4.stemCountChanged);
@@ -448,6 +464,33 @@ PioneerDDJFLX4.beatFxChannel2 = function(_channel, control, value, _status, grou
     if (value === 0x7f) { enableChannel = 1; }
 
     engine.setValue(group, "group_[Channel2]_enable", enableChannel);
+};
+
+//
+// Smart CFX
+//
+// Mixxx exposes each deck's Color FX as a QuickEffectRack. The physical FLX4
+// CFX knobs already control QuickEffectRack.super1; this button now provides
+// the corresponding hardware on/off state without introducing a parallel FX
+// engine. When disabled, the current QuickEffect effects remain configured but
+// are bypassed.
+
+PioneerDDJFLX4.updateSmartCfxLight = function() {
+    const deck1Enabled = engine.getValue("[QuickEffectRack1_[Channel1]]", "enabled") > 0;
+    const deck2Enabled = engine.getValue("[QuickEffectRack1_[Channel2]]", "enabled") > 0;
+    PioneerDDJFLX4.smartCfxEnabled = deck1Enabled || deck2Enabled;
+    PioneerDDJFLX4.toggleLight(PioneerDDJFLX4.lights.smartCfx, PioneerDDJFLX4.smartCfxEnabled);
+};
+
+PioneerDDJFLX4.smartCfxPressed = function(_channel, _control, value) {
+    if (value === 0) {
+        return;
+    }
+
+    const newState = !PioneerDDJFLX4.smartCfxEnabled;
+    engine.setValue("[QuickEffectRack1_[Channel1]]", "enabled", newState);
+    engine.setValue("[QuickEffectRack1_[Channel2]]", "enabled", newState);
+    PioneerDDJFLX4.updateSmartCfxLight();
 };
 
 //
