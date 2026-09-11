@@ -37,30 +37,24 @@ jobs:
                   raise SystemExit(f"Expected {expected} occurrences, found {count}: {old!r}")
               s = s.replace(old, new, expected)
 
-          # Keep the top track/info strip compact without making it visually tiny.
           replace_exact(
               "Layout.preferredHeight: root.minimized ? 28 : 56",
               "Layout.preferredHeight: root.minimized ? 28 : 48",
           )
 
-          # In the normal deck, Play and Cue are consecutive children of the first
-          # lower-strip column. Convert that first column into a horizontal row.
+          # Normal deck only: make Play/Cue a horizontal pair so the lower strip
+          # does not consume two full button heights vertically.
           play_cue_pattern = re.compile(
               r'(\{\s*"type":\s*")column("\s*,\s*"items":\s*\[\s*\{\s*"type":\s*"play"\s*\},\s*\{\s*"type":\s*"cue"\s*\}\s*\])',
               re.S,
           )
           matches = list(play_cue_pattern.finditer(s))
           if len(matches) != 2:
-              raise SystemExit(f"Expected exactly two Play/Cue column definitions (normal + minimized), found {len(matches)}")
+              raise SystemExit(f"Expected exactly two Play/Cue column definitions, found {len(matches)}")
           first = matches[0]
-          before = s[:first.start()]
-          target = s[first.start():first.end()]
-          after = s[first.end():]
-          target = target.replace('"type": "column"', '"type": "row"', 1)
-          s = before + target + after
+          target = s[first.start():first.end()].replace('"type": "column"', '"type": "row"', 1)
+          s = s[:first.start()] + target + s[first.end():]
 
-          # Preserve comfortable touch areas while reducing only the vertical
-          # budget of the lower control strip.
           replace_exact(
               "Layout.preferredHeight: root.minimized ? 32 : 60",
               "Layout.preferredHeight: root.minimized ? 32 : 68",
@@ -79,30 +73,27 @@ jobs:
               "height: 76\n\n                DeckComponent.HotcueAndStem",
           )
 
-          # Waveform-first sizing: 64 px is the deliberate mobile baseline;
-          # fillHeight remains enabled so taller decks get proportionally more.
-          marker = '''            LayoutItem {
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                blurRadius: 4
-                editLabel.color: Theme.white
-                editLabel.font.pixelSize: 14
-                editLabel.text: "Waveform overview"'''
-          replacement = '''            LayoutItem {
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                Layout.preferredHeight: 76
-                Layout.minimumHeight: 64
-                blurRadius: 4
-                editLabel.color: Theme.white
-                editLabel.font.pixelSize: 14
-                editLabel.text: "Waveform overview"'''
-          replace_exact(marker, replacement)
+          # Scope the waveform edit to the single DelegateChoice block, then
+          # match only the two layout properties. This avoids YAML/Python indent
+          # interactions entirely.
+          block_start = s.index('roleValue: "waveformOverview"')
+          block_end = s.index('roleValue: "fxAssign"', block_start)
+          waveform_block = s[block_start:block_end]
+          layout_pair = re.compile(
+              r'(Layout\.fillHeight:\s*true\s*\n\s*Layout\.fillWidth:\s*true\s*\n)'
+          )
+          if len(layout_pair.findall(waveform_block)) != 1:
+              raise SystemExit("Waveform layout fillHeight/fillWidth pair not found exactly once")
+          waveform_block = layout_pair.sub(
+              r'\1                Layout.preferredHeight: 76\n                Layout.minimumHeight: 64\n',
+              waveform_block,
+              count=1,
+          )
+          s = s[:block_start] + waveform_block + s[block_end:]
 
           if s == original:
               raise SystemExit("Patch produced no changes")
 
-          # Safety checks validate the intended structure, not indentation.
           normal_play_cue = re.findall(
               r'"type":\s*"row"\s*,\s*"items":\s*\[\s*\{\s*"type":\s*"play"\s*\},\s*\{\s*"type":\s*"cue"\s*\}\s*\]',
               s,
@@ -111,9 +102,15 @@ jobs:
           if len(normal_play_cue) != 1:
               raise SystemExit(f"Expected exactly one horizontal Play/Cue row after patch, found {len(normal_play_cue)}")
 
+          waveform_block_start = s.index('roleValue: "waveformOverview"')
+          waveform_block_end = s.index('roleValue: "fxAssign"', waveform_block_start)
+          final_waveform_block = s[waveform_block_start:waveform_block_end]
+          if final_waveform_block.count("Layout.preferredHeight: 76") != 1:
+              raise SystemExit("Waveform preferredHeight is not present exactly once in its delegate")
+          if final_waveform_block.count("Layout.minimumHeight: 64") != 1:
+              raise SystemExit("Waveform minimumHeight is not present exactly once in its delegate")
+
           checks = {
-              "waveform minimum": s.count("Layout.minimumHeight: 64") == 1,
-              "waveform preferred": s.count("Layout.preferredHeight: 76") == 1,
               "normal loop 76": s.count("height: 76\n\n                DeckComponent.Loop") == 1,
               "normal beatjump 76": s.count("height: 76\n\n                DeckComponent.BeatJump") == 1,
               "normal hotcue 76": s.count("height: 76\n\n                DeckComponent.HotcueAndStem") == 1,
@@ -130,11 +127,11 @@ jobs:
 
           git diff --check
           echo "--- waveform delegate ---"
-          grep -n -A14 -B2 'roleValue: "waveformOverview"' res/qml/Deck.qml
+          grep -n -A16 -B2 'roleValue: "waveformOverview"' res/qml/Deck.qml
           echo "--- normal Play/Cue model ---"
           grep -n -A18 -B2 '"type": "row"' res/qml/Deck.qml | head -n 30
           echo "--- edited control heights ---"
-          grep -n -E 'preferredHeight: root.minimized|height: 76|height: 140' res/qml/Deck.qml | head -n 30
+          grep -n -E 'preferredHeight: root.minimized|Layout.preferredHeight: 76|Layout.minimumHeight: 64|height: 76|height: 140' res/qml/Deck.qml | head -n 40
           echo "--- diff stat ---"
           git diff --stat
           echo "--- Deck.qml diff ---"
