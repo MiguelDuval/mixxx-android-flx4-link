@@ -215,14 +215,33 @@ Popup {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
 
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
+                RowLayout {
+                    Layout.fillWidth: true
                     Layout.preferredHeight: 36
-                    color: Theme.white
-                    font.pixelSize: 16
-                    font.weight: Font.DemiBold
-                    text: "Settings"
+
+                    Text {
+                        Layout.fillWidth: true
+                        color: Theme.white
+                        font.pixelSize: 16
+                        font.weight: Font.DemiBold
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Settings"
+                    }
                 }
+
+                Skin.Button {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: Math.min(360, parent.width)
+                    activeColor: Theme.white
+                    text: "Open full Mixxx Preferences"
+
+                    onClicked: {
+                        root.close();
+                        Mixxx.PreferencesDialog.show();
+                    }
+                }
+
                 Rectangle {
                     id: tabBar
 
