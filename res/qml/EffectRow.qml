@@ -22,7 +22,6 @@ Item {
             }
             Effects.EffectUnit {
                 unitNumber: 3
-                visible: showFourUnitsControl.value > 0
                 width: parent.width
             }
         }
@@ -31,11 +30,6 @@ Item {
 
             Effects.EffectUnit {
                 unitNumber: 2
-                width: parent.width
-            }
-            Effects.EffectUnit {
-                unitNumber: 4
-                visible: showFourUnitsControl.value > 0
                 width: parent.width
             }
         }

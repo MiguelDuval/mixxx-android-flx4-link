@@ -905,9 +905,16 @@ PioneerDDJFLX4.initializePadFx = function() {
         const channel = `[Channel${deckIndex + 1}]`;
         const otherChannel = `[Channel${deckIndex === 0 ? 2 : 1}]`;
 
+        // Pad FX units must contain a real EffectChain before their slots can
+        // accept next_effect/load commands. Keep them enabled and load the first
+        // non-empty chain preset when the unit is still empty.
         engine.setValue(unit, "show_focus", 1);
         engine.setValue(unit, "group_" + channel + "_enable", 1);
         engine.setValue(unit, "group_" + otherChannel + "_enable", 0);
+        if (Math.floor(engine.getValue(unit, "loaded_chain_preset")) <= 0) {
+            engine.setValue(unit, "next_chain_preset", 1);
+        }
+        engine.setValue(unit, "enabled", 1);
         PioneerDDJFLX4.padFx.mode[deckIndex] = 0;
         engine.setParameter(unit, "mix", 0);
 

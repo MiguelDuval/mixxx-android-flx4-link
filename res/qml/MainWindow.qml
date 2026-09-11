@@ -633,15 +633,23 @@ Item {
                 //         fadeTarget: samplers
                 //     }
                 // }
-                // Skin.EffectRow {
-                //     id: effects
-                //     visible: root.showEffects
-                //     width: parent.width
-                //
-                //     Skin.FadeBehavior on visible {
-                //         fadeTarget: effects
-                //     }
-                // }
+                Loader {
+                    id: effects
+
+                    active: root.showEffects && !root.maximizeLibrary
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: root.show4decks ? deck4.bottom : deck2.bottom
+                    height: item ? item.implicitHeight : 0
+                    visible: item !== null
+                    z: 2
+
+                    sourceComponent: Component {
+                        Skin.EffectRow {
+                            anchors.fill: parent
+                        }
+                    }
+                }
                 Loader {
                     id: library
 
@@ -682,7 +690,7 @@ Item {
 
                     anchors {
                         bottom: parent.bottom
-                        top: mixer.bottom
+                        top: (effects.active && effects.item) ? effects.bottom : mixer.bottom
                     }
                 }
             }
