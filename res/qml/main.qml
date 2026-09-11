@@ -59,15 +59,13 @@ ApplicationWindow {
     // IMPORTANT: this Loader is deliberately created only after Mixxx.Core is
     // ready and MainWindow has loaded. ControlProxy objects inside
     // BitGridOverlay therefore see the already-created engine controls.
+    // The overlay itself spans the whole Android window so its editor panel
+    // can be laid out independently from the compact entry buttons.
     Loader {
         id: bitgridOverlay
-        anchors.left: parent.left
-        anchors.leftMargin: 270
-        anchors.top: parent.top
+        anchors.fill: parent
         active: root.isMobile && Mixxx.Core.ready && content.status === Loader.Ready
         asynchronous: false
-        width: 220
-        height: 44
         z: 100000
         source: "BitGridOverlay.qml"
     }
