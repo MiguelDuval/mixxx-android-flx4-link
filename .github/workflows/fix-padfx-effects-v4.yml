@@ -1,0 +1,83 @@
+name: Verify PadFX Effects repair v4
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Apply final repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # 1. Effects UI: it must live outside the height-constrained mixer SplitView.
+          main = Path('res/qml/MainWindow.qml')
+          text = main.read_text()
+          start = text.find('                Loader {\n                    id: effects\n')
+          end = text.find('                Loader {\n                    id: library\n', start)
+          if start >= 0 and end >= 0:
+              text = text[:start] + text[end:]
+              text = text.replace(
+                  'top: (effects.active && effects.item) ? effects.bottom : mixer.bottom',
+                  'top: mixer.bottom',
+                  1,
+              )
+          overlay = '''    Loader {\n        id: effectsOverlay\n\n        active: root.showEffects && !root.maximizeLibrary\n        anchors.left: parent.left\n        anchors.right: parent.right\n        anchors.top: toolbar.bottom\n        anchors.bottom: parent.bottom\n        visible: item !== null\n        z: 100\n\n        sourceComponent: Component {\n            Skin.EffectRow {\n                anchors.fill: parent\n            }\n        }\n    }\n'''
+          if 'id: effectsOverlay' not in text:
+              marker = '    Skin.Settings {\n'
+              if marker not in text:
+                  raise SystemExit('Settings marker missing')
+              text = text.replace(marker, overlay + marker, 1)
+          main.write_text(text)
+
+          # 2. Pad mode dispatch: use a real control group. The callback derives
+          # the deck from MIDI status, so the group is only a valid dispatch context.
+          xml = Path('res/controllers/Pioneer-DDJ-FLX4.midi.xml')
+          x = xml.read_text()
+          x = x.replace('<group>[PadMode]</group>', '<group>[Channel1]</group>')
+          xml.write_text(x)
+
+          # 3. Pad FX slot selection: use only documented EffectSlot controls.
+          js = Path('res/controllers/Pioneer-DDJ-FLX4-script.js')
+          j = js.read_text()
+          start = j.index('PioneerDDJFLX4.loadPadFxEffect = function')
+          end = j.index('\n};', start) + 3
+          loader = '''PioneerDDJFLX4.loadPadFxEffect = function(deckIndex, slotIndex, targetEffect) {\n    const unit = PioneerDDJFLX4.padFx.units[deckIndex];\n    const slotGroup = `${unit}_Effect${slotIndex + 1}`;\n    const available = Math.floor(engine.getValue("[Master]", "num_effectsavailable"));\n\n    if (available <= 1) {\n        return false;\n    }\n\n    const steps = Math.max(1, (targetEffect % available) + 1);\n    engine.setValue(slotGroup, "clear", 1);\n    for (let step = 0; step < steps; step++) {\n        engine.setValue(slotGroup, "next_effect", 1);\n    }\n\n    engine.setValue(slotGroup, "enabled", 1);\n    engine.setValue(unit, "enabled", 1);\n    engine.setParameter(unit, "mix", 1);\n    return true;\n};'''
+          j = j[:start] + loader + j[end:]
+
+          # 4. EffectUnit initialization: use documented loaded/next_chain controls.
+          old = '''        if (Math.floor(engine.getValue(unit, "loaded_chain_preset")) <= 0) {\n            engine.setValue(unit, "next_chain_preset", 1);\n        }\n        engine.setValue(unit, "enabled", 1);'''
+          new = '''        if (!engine.getValue(unit, "loaded")) {\n            engine.setValue(unit, "next_chain", 1);\n        }\n        engine.setValue(unit, "enabled", 1);'''
+          if old not in j:
+              raise SystemExit('Old PadFX chain initialization block not found')
+          j = j.replace(old, new, 1)
+          js.write_text(j)
+
+          # 5. Exact validation of the resulting source.
+          final_main = main.read_text()
+          final_xml = xml.read_text()
+          final_js = js.read_text()
+          assert 'id: effectsOverlay' in final_main
+          assert '                Loader {\n                    id: effects\n' not in final_main
+          assert 'top: mixer.bottom' in final_main
+          assert '<group>[PadMode]</group>' not in final_xml
+          assert 'loaded_effect' not in final_js
+          assert 'loaded_chain_preset' not in final_js
+          assert 'engine.setValue(slotGroup, "clear", 1);' in final_js
+          assert 'engine.setValue(slotGroup, "next_effect", 1);' in final_js
+          assert 'engine.setValue(unit, "next_chain", 1);' in final_js
+          assert 'engine.setValue(unit, "enabled", 1);' in final_js
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add res/qml/MainWindow.qml res/controllers/Pioneer-DDJ-FLX4.midi.xml res/controllers/Pioneer-DDJ-FLX4-script.js
+          git rm -f .github/workflows/fix-padfx-effects-v2.yml .github/workflows/fix-padfx-effects-v3.yml .github/workflows/fix-padfx-effects-v4.yml
+          git commit -m "Fix Pad FX controls and Effects UI overlay"
+          git push origin HEAD:main
