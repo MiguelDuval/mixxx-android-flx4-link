@@ -127,6 +127,7 @@ Rectangle {
                     id: columnResizeHandler
 
                     property real startWidth: 0
+                    property real startMouseX: 0
 
                     anchors.fill: parent
                     cursorShape: Qt.SizeHorCursor
@@ -134,13 +135,14 @@ Rectangle {
 
                     onPressed: mouse => {
                         startWidth = column.width;
+                        startMouseX = mouse.x;
                     }
 
                     onPositionChanged: mouse => {
                         if (!pressed) {
                             return;
                         }
-                        column.width = Math.max(1, startWidth + (mouse.x - mouse.pressX));
+                        column.width = Math.max(1, startWidth + (mouse.x - startMouseX));
                     }
 
                     onReleased: {
