@@ -18,65 +18,152 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply verified waveform layout patch
+      - name: Apply and verify waveform-first mobile layout
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+
           p = Path("res/qml/Deck.qml")
           s = p.read_text()
-          replacements = [
-              ("Layout.preferredHeight: root.minimized ? 28 : 56", "Layout.preferredHeight: root.minimized ? 28 : 44", 1),
-              ("height: 92\n\n                DeckComponent.Loop", "height: 64\n\n                DeckComponent.Loop", 1),
-              ("height: 92\n\n                DeckComponent.BeatJump", "height: 64\n\n                DeckComponent.BeatJump", 1),
-              ("Layout.preferredHeight: root.minimized ? 32 : 60", "Layout.preferredHeight: root.minimized ? 32 : 48", 2),
-              ("height: 140\n                width: 140", "height: 112\n                width: 112", 1),
-              ("height: 92\n\n                DeckComponent.HotcueAndStem", "height: 68\n\n                DeckComponent.HotcueAndStem", 1),
-          ]
-          for old, new, expected in replacements:
+          original = s
+
+          def replace_exact(old: str, new: str, expected: int = 1) -> None:
+              global s
               count = s.count(old)
               if count != expected:
                   raise SystemExit(f"Expected {expected} occurrences, found {count}: {old!r}")
               s = s.replace(old, new, expected)
 
+          # Keep the top track/info strip compact without making it visually tiny.
+          replace_exact(
+              "Layout.preferredHeight: root.minimized ? 28 : 56",
+              "Layout.preferredHeight: root.minimized ? 28 : 48",
+          )
+
+          # The normal deck currently stacks Play and Cue vertically (60 + 60 px),
+          # which consumes the vertical budget needed by the waveform. Make those
+          # controls a horizontal pair instead; this preserves touch targets while
+          # reducing the lower strip's vertical minimum to the height of its
+          # largest control group.
+          old_play_cue = '''                        {
+                            \"type\": \"column\",
+                            \"items\": [
+                                {
+                                    \"type\": \"play\"
+                                },
+                                {
+                                    \"type\": \"cue\"
+                                }
+                            ]
+                        },
+                        {
+                            \"type\": \"column\",
+                            \"items\": [
+                                {
+                                    \"type\": \"toolbar\"'''
+          new_play_cue = '''                        {
+                            \"type\": \"row\",
+                            \"items\": [
+                                {
+                                    \"type\": \"play\"
+                                },
+                                {
+                                    \"type\": \"cue\"
+                                }
+                            ]
+                        },
+                        {
+                            \"type\": \"column\",
+                            \"items\": [
+                                {
+                                    \"type\": \"toolbar\"'''
+          replace_exact(old_play_cue, new_play_cue)
+
+          # Preserve comfortable touch areas while reducing only the vertical
+          # budget of the lower control strip.
+          replace_exact(
+              "Layout.preferredHeight: root.minimized ? 32 : 60",
+              "Layout.preferredHeight: root.minimized ? 32 : 68",
+              expected=2,
+          )
+          replace_exact(
+              "height: 92\\n\\n                DeckComponent.Loop",
+              "height: 76\\n\\n                DeckComponent.Loop",
+          )
+          replace_exact(
+              "height: 92\\n\\n                DeckComponent.BeatJump",
+              "height: 76\\n\\n                DeckComponent.BeatJump",
+          )
+          replace_exact(
+              "height: 92\\n\\n                DeckComponent.HotcueAndStem",
+              "height: 76\\n\\n                DeckComponent.HotcueAndStem",
+          )
+
+          # Waveform-first sizing: 64 px is the deliberate mobile baseline;
+          # because fillHeight remains enabled it can grow beyond that baseline
+          # whenever the deck has additional vertical space.
           marker = '''            LayoutItem {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 blurRadius: 4
                 editLabel.color: Theme.white
                 editLabel.font.pixelSize: 14
-                editLabel.text: "Waveform overview"'''
+                editLabel.text: \"Waveform overview\"'''
           replacement = '''            LayoutItem {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                Layout.preferredHeight: 150
-                Layout.minimumHeight: 110
+                Layout.preferredHeight: 76
+                Layout.minimumHeight: 64
                 blurRadius: 4
                 editLabel.color: Theme.white
                 editLabel.font.pixelSize: 14
-                editLabel.text: "Waveform overview"'''
-          if s.count(marker) != 1:
-              raise SystemExit("Waveform delegate marker was not found exactly once")
-          s = s.replace(marker, replacement, 1)
+                editLabel.text: \"Waveform overview\"'''
+          replace_exact(marker, replacement)
+
+          if s == original:
+              raise SystemExit("Patch produced no changes")
+
+          # Safety checks: exactly one normal-model Play/Cue row and exactly one
+          # waveform sizing block must exist; the old vertical geometry must be gone.
+          checks = {
+              "horizontal play/cue model": s.count('''                        {\n                            \"type\": \"row\",\n                            \"items\": [\n                                {\n                                    \"type\": \"play\"\n                                },\n                                {\n                                    \"type\": \"cue\"\n                                }\n                            ]\n                        },''') == 1,
+              "waveform minimum": s.count("Layout.minimumHeight: 64") == 1,
+              "waveform preferred": s.count("Layout.preferredHeight: 76") == 1,
+              "normal loop 76": s.count("height: 76\\n\\n                DeckComponent.Loop") == 1,
+              "normal beatjump 76": s.count("height: 76\\n\\n                DeckComponent.BeatJump") == 1,
+              "normal hotcue 76": s.count("height: 76\\n\\n                DeckComponent.HotcueAndStem") == 1,
+              "old loop 92": "height: 92\\n\\n                DeckComponent.Loop" not in s,
+              "old beatjump 92": "height: 92\\n\\n                DeckComponent.BeatJump" not in s,
+              "old hotcue 92": "height: 92\\n\\n                DeckComponent.HotcueAndStem" not in s,
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          if failed:
+              raise SystemExit("Verification failed: " + ", ".join(failed))
+
           p.write_text(s)
           PY
 
           git diff --check
+          echo "--- waveform delegate ---"
           grep -n -A14 -B2 'roleValue: "waveformOverview"' res/qml/Deck.qml
-          grep -n -A2 -B1 'DeckComponent.Loop' res/qml/Deck.qml | head -n 8
-          grep -n -A2 -B1 'DeckComponent.BeatJump' res/qml/Deck.qml | head -n 8
-          grep -n -A2 -B1 'DeckComponent.HotcueAndStem' res/qml/Deck.qml | head -n 8
-          grep -n -A2 -B1 'height: 112' res/qml/Deck.qml | head -n 8
+          echo "--- normal Play/Cue model ---"
+          grep -n -A16 -B2 '"type": "row"' res/qml/Deck.qml | head -n 22
+          echo "--- edited control heights ---"
+          grep -n -E 'preferredHeight: root.minimized|height: 76|height: 140' res/qml/Deck.qml | head -n 30
+          echo "--- diff stat ---"
           git diff --stat
+          echo "--- Deck.qml diff ---"
           git diff -- res/qml/Deck.qml
 
       - name: Commit patch and remove one-shot workflow
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add res/qml/Deck.qml
           git rm -f .github/workflows/tmp-waveform-resize-v3.yml
-          git commit -m "feat(android): enlarge mobile deck waveforms"
+          git commit -m "feat(android): use waveform-first mobile deck layout"
           git push origin HEAD:main
