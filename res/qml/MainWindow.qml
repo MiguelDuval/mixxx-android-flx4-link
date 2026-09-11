@@ -634,23 +634,6 @@ Item {
                 //     }
                 // }
                 Loader {
-                    id: effects
-
-                    active: root.showEffects && !root.maximizeLibrary
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: root.show4decks ? deck4.bottom : deck2.bottom
-                    height: item ? item.implicitHeight : 0
-                    visible: item !== null
-                    z: 2
-
-                    sourceComponent: Component {
-                        Skin.EffectRow {
-                            anchors.fill: parent
-                        }
-                    }
-                }
-                Loader {
                     id: library
 
                     active: root.maximizeLibrary || root.height - mixer.height >= 400
@@ -690,9 +673,26 @@ Item {
 
                     anchors {
                         bottom: parent.bottom
-                        top: (effects.active && effects.item) ? effects.bottom : mixer.bottom
+                        top: mixer.bottom
                     }
                 }
+            }
+        }
+    }
+    Loader {
+        id: effectsOverlay
+
+        active: root.showEffects && !root.maximizeLibrary
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: toolbar.bottom
+        height: item ? Math.min(item.implicitHeight, parent.height - toolbar.height) : 0
+        visible: item !== null
+        z: 100
+
+        sourceComponent: Component {
+            Skin.EffectRow {
+                anchors.fill: parent
             }
         }
     }

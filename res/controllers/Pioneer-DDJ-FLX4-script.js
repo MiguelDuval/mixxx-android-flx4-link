@@ -911,8 +911,8 @@ PioneerDDJFLX4.initializePadFx = function() {
         engine.setValue(unit, "show_focus", 1);
         engine.setValue(unit, "group_" + channel + "_enable", 1);
         engine.setValue(unit, "group_" + otherChannel + "_enable", 0);
-        if (Math.floor(engine.getValue(unit, "loaded_chain_preset")) <= 0) {
-            engine.setValue(unit, "next_chain_preset", 1);
+        if (!engine.getValue(unit, "loaded")) {
+            engine.setValue(unit, "next_chain", 1);
         }
         engine.setValue(unit, "enabled", 1);
         PioneerDDJFLX4.padFx.mode[deckIndex] = 0;
@@ -986,26 +986,15 @@ PioneerDDJFLX4.releasePadFxSlot = function(deckIndex, slotIndex) {
 PioneerDDJFLX4.loadPadFxEffect = function(deckIndex, slotIndex, targetEffect) {
     const unit = PioneerDDJFLX4.padFx.units[deckIndex];
     const slotGroup = `${unit}_Effect${slotIndex + 1}`;
-    const available = Math.floor(engine.getValue("[Master]", "num_effectsavailable"));
+    const steps = Math.max(1, targetEffect + 1);
 
-    if (available <= 1) {
-        return false;
-    }
-
-    const usableEffects = available - 1; // index 0 is the empty/pass-through entry
-    const target = (targetEffect % usableEffects) + 1;
-    let current = Math.floor(engine.getValue(slotGroup, "loaded_effect"));
-
-    if (current < 0 || current >= available) {
-        current = 0;
-    }
-
-    let steps = (target - current + available) % available;
-    while (steps-- > 0) {
+    engine.setValue(slotGroup, "clear", 1);
+    for (let step = 0; step < steps; step++) {
         engine.setValue(slotGroup, "next_effect", 1);
     }
 
     engine.setValue(slotGroup, "enabled", 1);
+    engine.setValue(unit, "enabled", 1);
     engine.setParameter(unit, "mix", 1);
     return true;
 };
