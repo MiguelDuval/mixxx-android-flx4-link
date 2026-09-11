@@ -1,0 +1,52 @@
+name: One-shot waveform resize
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/tmp-waveform-resize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  resize:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Apply waveform-only layout patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('res/qml/Deck.qml')
+          s = p.read_text()
+          replacements = {
+              'Layout.preferredHeight: root.minimized ? 28 : 56': 'Layout.preferredHeight: root.minimized ? 28 : 44',
+              'height: 92\\n\\n                DeckComponent.Loop': 'height: 72\\n\\n                DeckComponent.Loop',
+              'height: 92\\n\\n                DeckComponent.BeatJump': 'height: 72\\n\\n                DeckComponent.BeatJump',
+              'Layout.preferredHeight: root.minimized ? 32 : 60': 'Layout.preferredHeight: root.minimized ? 32 : 52',
+              'height: 140\\n                width: 140': 'height: 112\\n                width: 112',
+              'height: 92\\n\\n                DeckComponent.HotcueAndStem': 'height: 72\\n\\n                DeckComponent.HotcueAndStem',
+          }
+          for old, new in replacements.items():
+              count = s.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one occurrence, found {count}: {old!r}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- res/qml/Deck.qml
+      - name: Commit patch and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add res/qml/Deck.qml
+          git rm .github/workflows/tmp-waveform-resize.yml
+          git commit -m 'feat(android): enlarge mobile deck waveforms'
+          git push origin HEAD:main
