@@ -24,6 +24,9 @@ jobs:
 
           deck = Path("res/qml/Deck.qml")
           text = deck.read_text(encoding="utf-8")
+          if 'roleValue: "controlRow"' in text:
+              print("controlRow already applied; nothing to do")
+              raise SystemExit(0)
 
           old_model = '''                                {\n                                    "type": "waveformOverview"\n                                },\n                                {\n                                    "type": "row",\n                                    "items": [\n                                        {\n                                            "type": "column",\n                                            "items": [\n                                                {\n                                                    "type": "play"\n                                                },\n                                                {\n                                                    "type": "cue"\n                                                }\n                                            ]\n                                        },'''
           new_model = old_model.replace('"type": "row"', '"type": "controlRow"', 1)
@@ -36,32 +39,26 @@ jobs:
           if text.count(old_delegate) != 1:
               raise SystemExit(f"expected one generic row delegate, found {text.count(old_delegate)}")
           text = text.replace(old_delegate, new_delegate, 1)
-
           deck.write_text(text, encoding="utf-8")
-
-          build = Path(".github/workflows/build.yml")
-          b = build.read_text(encoding="utf-8")
-          old = '    branches: [main]\n'
-          new = '    branches: [main, experiment/waveform-constraint-2026-09-11]\n'
-          if b.count(old) != 1:
-              raise SystemExit(f"expected one Android build branch selector, found {b.count(old)}")
-          build.write_text(b.replace(old, new, 1), encoding="utf-8")
           PY
 
           git diff --check
-          git diff -- res/qml/Deck.qml .github/workflows/build.yml
-
+          git diff -- res/qml/Deck.qml
           test "$(grep -c 'roleValue: \"controlRow\"' res/qml/Deck.qml)" -eq 1
           test "$(grep -c 'Layout.maximumHeight: 120' res/qml/Deck.qml)" -eq 1
           test "$(grep -c 'type\": \"controlRow\"' res/qml/Deck.qml)" -eq 1
 
-      - name: Commit experiment and remove temporary files
+      - name: Commit source experiment and remove trigger marker
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/workflows/tmp-waveform-constraint.yml .waveform-experiment-trigger
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m $'experiment(android): constrain deck control row for waveform test\n\nAI-generated change for human review only.\nAI-generated change for human review only ends here.'
-          git push origin HEAD:experiment/waveform-constraint-2026-09-11
+          if ! git diff --quiet -- res/qml/Deck.qml; then
+            rm -f .waveform-experiment-trigger
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add res/qml/Deck.qml .waveform-experiment-trigger
+            git commit -m $'experiment(android): constrain deck control row for waveform test\n\nAI-generated change for human review only.\nAI-generated change for human review only ends here.'
+            git push origin HEAD:experiment/waveform-constraint-2026-09-11
+          else
+            echo "No source changes to commit."
+          fi
