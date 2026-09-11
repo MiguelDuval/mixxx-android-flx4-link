@@ -54,14 +54,33 @@ jobs:
       - name: Configure Android
         shell: bash
         run: |
+          set -o pipefail
+          rm -rf build-android
+          rm -rf "${BUILDENV_BASEPATH}/${BUILDENV_NAME}"
           mkdir -p build-android
-          cd build-android
-          cmake \
-            -DCMAKE_TOOLCHAIN_FILE="$MIXXX_VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_SYSTEM_NAME=Android \
-            -DBUILD_TESTING=OFF \
-            -DBUILD_BENCH=OFF \
-            ..
+
+          # The upstream Android dependency ZIP can occasionally arrive truncated.
+          # Retry from a clean dependency directory so CMake never reuses a partial archive.
+          for attempt in 1 2 3; do
+            echo "=== Configure attempt ${attempt}/3 ==="
+            rm -rf "${BUILDENV_BASEPATH}/${BUILDENV_NAME}"
+            rm -rf build-android
+            mkdir -p build-android
+            if (cd build-android && cmake \
+              -DCMAKE_TOOLCHAIN_FILE="${MIXXX_VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+              -DCMAKE_SYSTEM_NAME=Android \
+              -DBUILD_TESTING=OFF \
+              -DBUILD_BENCH=OFF \
+              ..); then
+              echo "Android CMake configuration succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Android CMake configuration failed on attempt ${attempt}; retrying with a clean dependency directory."
+            sleep 5
+          done
+
+          echo "Android CMake configuration failed after 3 clean attempts."
+          exit 1
 
       - name: Build APK only
         shell: bash
