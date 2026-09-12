@@ -29,6 +29,24 @@ ApplicationWindow {
         key: "beats_translate_curpos"
     }
 
+    Mixxx.ControlProxy {
+        id: abletonLinkControl
+        group: "[AbletonLink]"
+        key: "sync_enabled"
+    }
+
+    Mixxx.ControlProxy {
+        id: abletonLinkPeersControl
+        group: "[AbletonLink]"
+        key: "num_peers"
+    }
+
+    Mixxx.ControlProxy {
+        id: showMaximizedLibraryControl
+        group: "[Skin]"
+        key: "show_maximized_library"
+    }
+
     function updateVisibility() {
         if (!Mixxx.Core.ready) {
             return;
@@ -84,6 +102,92 @@ ApplicationWindow {
             MainWindow {
                 applicationWindow: root
                 anchors.fill: parent
+            }
+        }
+    }
+
+    // Reliable Android Ableton Link toggle.
+    // This overlay deliberately sits above the existing toolbar button because
+    // Android can let the waveform MouseArea steal a nested release/tap gesture.
+    // It reads and writes the real native [AbletonLink] controls, so it is not
+    // a second Link implementation and stays synchronized with the engine.
+    Rectangle {
+        id: abletonLinkOverlay
+
+        anchors.top: parent.top
+        color: LateNightTheme.toolbarRootBackgroundColor
+        height: 26
+        visible: Qt.platform.os === "android"
+                && abletonLinkControl.initialized
+                && (!showMaximizedLibraryControl.initialized || showMaximizedLibraryControl.value <= 0.0)
+        width: 68
+        x: Math.max(2, Math.min(619, root.width - width - 2))
+        z: 10001
+
+        Rectangle {
+            anchors.fill: parent
+            color: LateNightTheme.toolbarRootBackgroundColor
+        }
+
+        MouseArea {
+            id: abletonLinkTouchArea
+
+            anchors.fill: abletonLinkButton
+            acceptedButtons: Qt.LeftButton
+            preventStealing: true
+            hoverEnabled: false
+
+            onPressed: {
+                if (abletonLinkControl.initialized) {
+                    abletonLinkControl.value = abletonLinkControl.value > 0.0 ? 0.0 : 1.0;
+                }
+            }
+        }
+
+        Rectangle {
+            id: abletonLinkButton
+
+            anchors.left: parent.left
+            anchors.leftMargin: 2
+            anchors.top: parent.top
+            anchors.topMargin: 2
+            color: abletonLinkControl.value > 0.0
+                    ? LateNightTheme.toolbarButtonActiveBackgroundColor
+                    : LateNightTheme.toolbarButtonInactiveBackgroundColor
+            height: 20
+            width: 64
+
+            BorderImage {
+                anchors.fill: parent
+                border.bottom: 2
+                border.left: 2
+                border.right: 2
+                border.top: 2
+                horizontalTileMode: BorderImage.Stretch
+                source: abletonLinkControl.value > 0.0
+                        ? LateNightTheme.lateNightAsset("buttons", "btn_embedded_library_active.svg")
+                        : LateNightTheme.lateNightAsset("buttons", "btn_embedded_library.svg")
+                verticalTileMode: BorderImage.Stretch
+            }
+
+            Text {
+                anchors.fill: parent
+                color: abletonLinkControl.value > 0.0
+                        ? LateNightTheme.toolbarButtonActiveTextColor
+                        : LateNightTheme.toolbarButtonInactiveTextColor
+                elide: Text.ElideRight
+                font {
+                    family: "Open Sans"
+                    pixelSize: 11
+                    styleName: "Bold"
+                    weight: Font.Bold
+                }
+                horizontalAlignment: Text.AlignHCenter
+                renderType: Text.NativeRendering
+                text: "LINK" + (abletonLinkPeersControl.initialized
+                        ? " " + Math.max(0, Math.round(abletonLinkPeersControl.value))
+                        : "")
+                verticalAlignment: Text.AlignVCenter
             }
         }
     }
