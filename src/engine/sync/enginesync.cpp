@@ -21,6 +21,7 @@ EngineSync::EngineSync(UserSettingsPointer pConfig)
           m_pInternalClock(new InternalClock(kInternalClockGroup, this)),
           m_pAbletonLink(new AbletonLink(kAbletonLinkGroup, this)),
           m_pLeaderSyncable(nullptr),
+          m_abletonLinkSyncModeRequested(false),
           m_abletonLinkSyncMode(false) {
     qRegisterMetaType<SyncMode>("SyncMode");
     m_pInternalClock->updateLeaderBpm(kDefaultBpm);
@@ -36,6 +37,10 @@ EngineSync::~EngineSync() {
 }
 
 void EngineSync::setAbletonLinkSyncMode(bool enabled) {
+    m_abletonLinkSyncModeRequested.store(enabled, std::memory_order_release);
+}
+
+void EngineSync::applyAbletonLinkSyncMode(bool enabled) {
     if (m_abletonLinkSyncMode == enabled) {
         if (enabled) {
             // Re-assert the invariant in case a deck requested a mode change
@@ -92,6 +97,7 @@ void EngineSync::setAbletonLinkSyncMode(bool enabled) {
         }
     }
 }
+
 
 void EngineSync::requestSyncMode(Syncable* pSyncable, SyncMode mode) {
     if (kLogger.traceEnabled()) {
@@ -747,6 +753,12 @@ void EngineSync::addSyncableDeck(Syncable* pSyncable) {
 void EngineSync::onCallbackStart(mixxx::audio::SampleRate sampleRate,
         std::size_t bufferSize,
         std::chrono::microseconds absTimeWhenPrevOutputBufferReachesDac) {
+    const bool requestedLinkSync =
+            m_abletonLinkSyncModeRequested.load(std::memory_order_acquire);
+    if (requestedLinkSync != m_abletonLinkSyncMode) {
+        applyAbletonLinkSyncMode(requestedLinkSync);
+    }
+
     m_pInternalClock->onCallbackStart(sampleRate, bufferSize);
     m_pAbletonLink->onCallbackStart(absTimeWhenPrevOutputBufferReachesDac);
 }
