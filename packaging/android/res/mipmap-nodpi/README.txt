@@ -1,0 +1,1 @@
+Launcher resources use the exact approved NRave artwork.
