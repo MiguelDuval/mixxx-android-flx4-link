@@ -69,7 +69,7 @@ AbletonLink::~AbletonLink() {
 void AbletonLink::slotControlSyncEnabled(double controButtonlValue) {
     const bool enabled = controButtonlValue > 0;
     m_pLink->enable(enabled);
-    if (!enabled && m_pEngineSync->isAbletonLinkSyncMode()) {
+    if (!enabled) {
         m_pLinkSyncButton->setAndConfirm(0.0);
         m_pEngineSync->setAbletonLinkSyncMode(false);
     }
