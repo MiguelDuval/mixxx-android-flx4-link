@@ -36,6 +36,14 @@ class EngineSync : public SyncableListener {
     /// Syncable::notifySyncModeChanged.
     void requestSyncMode(Syncable* pSyncable, SyncMode state) override;
 
+    /// Enables a Link-specific sync mode in which Ableton Link is the explicit
+    /// sync leader and synchronized decks remain followers. This leaves the
+    /// normal Mixxx leader-selection algorithm untouched when disabled.
+    void setAbletonLinkSyncMode(bool enabled);
+    bool isAbletonLinkSyncMode() const {
+        return m_abletonLinkSyncMode;
+    }
+
     /// Syncables notify EngineSync directly about various events. EngineSync
     /// does not have a say in whether these succeed or not, they are simply
     /// notifications.
@@ -170,6 +178,8 @@ class EngineSync : public SyncableListener {
     AbletonLink* m_pAbletonLink;
     /// The current Syncable that is the leader.
     Syncable* m_pLeaderSyncable;
+    /// When true, Ableton Link is the explicit sync leader for all sync-enabled decks.
+    bool m_abletonLinkSyncMode;
     /// The list of all Syncables registered via addSyncableDeck.
     QList<Syncable*> m_syncables;
 };
