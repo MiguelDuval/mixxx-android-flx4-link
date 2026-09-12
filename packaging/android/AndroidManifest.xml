@@ -20,8 +20,8 @@
     <application
         android:name="org.qtproject.qt.android.bindings.QtApplication"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/nrave_icon"
-        android:roundIcon="@drawable/nrave_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="NRave"
         android:theme="@style/NraveTheme"
         android:requestLegacyExternalStorage="true"
