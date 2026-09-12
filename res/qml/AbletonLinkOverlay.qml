@@ -22,6 +22,12 @@ Item {
         key: "num_peers"
     }
 
+    Mixxx.ControlProxy {
+        id: linkSync
+        group: "[AbletonLink]"
+        key: "sync_decks"
+    }
+
     Skin.Button {
         id: linkButton
 
@@ -52,5 +58,24 @@ Item {
         horizontalAlignment: Text.AlignLeft
         verticalAlignment: Text.AlignVCenter
         text: linkPeers.initialized ? "P" + Math.max(0, Math.round(linkPeers.value)) : ""
+    }
+
+    Skin.Button {
+        id: linkSyncButton
+
+        x: 462
+        y: 5
+        width: 58
+        height: 26
+        text: "Sync"
+        activeColor: Theme.white
+        enabled: linkEnabled.initialized && linkEnabled.value > 0.5
+        highlight: linkSync.initialized && linkSync.value > 0.5
+
+        onPressed: {
+            if (linkSync.initialized && enabled) {
+                linkSync.value = linkSync.value > 0.5 ? 0.0 : 1.0;
+            }
+        }
     }
 }
