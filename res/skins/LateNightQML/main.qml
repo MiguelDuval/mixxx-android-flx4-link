@@ -114,14 +114,15 @@ ApplicationWindow {
     Rectangle {
         id: abletonLinkOverlay
 
+        anchors.left: parent.left
         anchors.top: parent.top
+        anchors.topMargin: 27
         color: LateNightTheme.toolbarRootBackgroundColor
-        height: 26
+        height: 34
         visible: Qt.platform.os === "android"
-                && abletonLinkControl.initialized
                 && (!showMaximizedLibraryControl.initialized || showMaximizedLibraryControl.value <= 0.0)
-        width: 68
-        x: Math.max(2, Math.min(619, root.width - width - 2))
+        width: 74
+        x: 190
         z: 10001
 
         Rectangle {
@@ -150,12 +151,12 @@ ApplicationWindow {
             anchors.left: parent.left
             anchors.leftMargin: 2
             anchors.top: parent.top
-            anchors.topMargin: 2
+            anchors.topMargin: 4
             color: abletonLinkControl.value > 0.0
                     ? LateNightTheme.toolbarButtonActiveBackgroundColor
                     : LateNightTheme.toolbarButtonInactiveBackgroundColor
-            height: 20
-            width: 64
+            height: 26
+            width: 70
 
             BorderImage {
                 anchors.fill: parent
