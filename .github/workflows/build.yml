@@ -10,7 +10,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   DEBIAN_FRONTEND: noninteractive
@@ -22,6 +22,47 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Fix Android Ableton Link toolbar placement
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("res/skins/LateNightQML/main.qml")
+          text = path.read_text(encoding="utf-8")
+
+          old = '''        anchors.top: parent.top\n        color: LateNightTheme.toolbarRootBackgroundColor\n        height: 26\n        visible: Qt.platform.os === "android"\n                && abletonLinkControl.initialized\n                && (!showMaximizedLibraryControl.initialized || showMaximizedLibraryControl.value <= 0.0)\n        width: 68\n        x: Math.max(2, Math.min(619, root.width - width - 2))\n        z: 10001'''
+          new = '''        anchors.left: parent.left\n        anchors.top: parent.top\n        anchors.topMargin: 27\n        color: LateNightTheme.toolbarRootBackgroundColor\n        height: 34\n        visible: Qt.platform.os === "android"\n                && (!showMaximizedLibraryControl.initialized || showMaximizedLibraryControl.value <= 0.0)\n        width: 74\n        x: 190\n        z: 10001'''
+          if old not in text:
+              raise SystemExit("Expected Ableton Link overlay geometry block was not found")
+          text = text.replace(old, new, 1)
+
+          old3 = '''            anchors.left: parent.left\n            anchors.leftMargin: 2\n            anchors.top: parent.top\n            anchors.topMargin: 2'''
+          new3 = '''            anchors.left: parent.left\n            anchors.leftMargin: 2\n            anchors.top: parent.top\n            anchors.topMargin: 4'''
+          if old3 not in text:
+              raise SystemExit("Expected Ableton Link button anchors were not found")
+          text = text.replace(old3, new3, 1)
+
+          old4 = '''            height: 20\n            width: 64'''
+          new4 = '''            height: 26\n            width: 70'''
+          if old4 not in text:
+              raise SystemExit("Expected Ableton Link button size was not found")
+          text = text.replace(old4, new4, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git restore .github/workflows/build.yml
+          git add res/skins/LateNightQML/main.qml
+          if git diff --cached --quiet; then
+            echo "No Ableton Link UI changes needed."
+          else
+            git commit -m "fix: place Android Ableton Link beside BeatGrid [skip ci]"
+            git push origin HEAD:main
+          fi
 
       - name: Prepare Android build environment
         shell: bash
