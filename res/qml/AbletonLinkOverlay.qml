@@ -30,9 +30,7 @@ Item {
         width: 52
         height: 26
         text: "Link"
-        checkable: true
-        checked: linkEnabled.initialized && linkEnabled.value > 0.5
-        highlight: checked
+        highlight: linkEnabled.initialized && linkEnabled.value > 0.5
         activeColor: Theme.white
 
         onPressed: {
