@@ -184,6 +184,19 @@ Rectangle {
 
             Mixxx.PlayerManager.loadLocationUrlIntoNextAvailableDeck(urls[0], play);
         }
+        function ensureSelectedRowVisible(row) {
+            if (row < 0 || model == null) {
+                return;
+            }
+
+            Qt.callLater(function() {
+                if (model == null || row < 0 || row >= model.rowCount()) {
+                    return;
+                }
+                view.forceLayout();
+                view.positionViewAtRow(row, TableView.Contain);
+            });
+        }
         function updateColumnSize() {
             const oldUsedWidth = usedWidth;
             const oldDynamicColumnCount = dynamicColumnCount;
@@ -291,6 +304,7 @@ Rectangle {
                 }
                 const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
                 this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
+                view.ensureSelectedRowVisible(newRow);
             }
             function selectedTrackUrls() {
                 return this.selectedIndexes.map(index => {
@@ -300,7 +314,7 @@ Rectangle {
 
             onCurrentChanged: (current, previous) => {
                 if (current && current.row >= 0) {
-                    view.positionViewAtRow(current.row, TableView.Contain);
+                    view.ensureSelectedRowVisible(current.row);
                 }
             }
 
