@@ -572,6 +572,18 @@ Rectangle {
         key: "beats_translate_curpos"
     }
     Mixxx.ControlProxy {
+        id: abletonLinkControl
+
+        group: "[AbletonLink]"
+        key: "sync_enabled"
+    }
+    Mixxx.ControlProxy {
+        id: abletonLinkPeersControl
+
+        group: "[AbletonLink]"
+        key: "num_peers"
+    }
+    Mixxx.ControlProxy {
         id: saveSamplerBankControl
 
         group: "[Sampler]"
@@ -837,6 +849,26 @@ Rectangle {
                     }
                 }
             }
+            // BEGIN PAPUSHA ABLETON LINK UI
+            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: -2
+
+                LateNightToolbarButton {
+                    id: abletonLinkButton
+
+                    buttonWidth: 58
+                    checked: abletonLinkControl.initialized && abletonLinkControl.value > 0.0
+                    text: "LINK" + (abletonLinkPeersControl.initialized ? " " + Math.round(abletonLinkPeersControl.value) : "")
+                    enabled: abletonLinkControl.initialized
+
+                    onActivated: {
+                        abletonLinkControl.value = checked ? 1.0 : 0.0;
+                    }
+                }
+            }
+            // END PAPUSHA ABLETON LINK UI
+
             RowLayout {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: -2
