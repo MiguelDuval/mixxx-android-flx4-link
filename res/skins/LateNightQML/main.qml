@@ -35,18 +35,6 @@ ApplicationWindow {
         key: "sync_enabled"
     }
 
-    Mixxx.ControlProxy {
-        id: abletonLinkPeersControl
-        group: "[AbletonLink]"
-        key: "num_peers"
-    }
-
-    Mixxx.ControlProxy {
-        id: showMaximizedLibraryControl
-        group: "[Skin]"
-        key: "show_maximized_library"
-    }
-
     function updateVisibility() {
         if (!Mixxx.Core.ready) {
             return;
@@ -106,96 +94,10 @@ ApplicationWindow {
         }
     }
 
-    // Reliable Android Ableton Link toggle.
-    // This overlay deliberately sits above the existing toolbar button because
-    // Android can let the waveform MouseArea steal a nested release/tap gesture.
-    // It reads and writes the real native [AbletonLink] controls, so it is not
-    // a second Link implementation and stays synchronized with the engine.
-    Rectangle {
-        id: abletonLinkOverlay
-
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.topMargin: 27
-        color: LateNightTheme.toolbarRootBackgroundColor
-        height: 34
-        visible: Qt.platform.os === "android"
-                && (!showMaximizedLibraryControl.initialized || showMaximizedLibraryControl.value <= 0.0)
-        width: 74
-        x: 190
-        z: 10001
-
-        Rectangle {
-            anchors.fill: parent
-            color: LateNightTheme.toolbarRootBackgroundColor
-        }
-
-        MouseArea {
-            id: abletonLinkTouchArea
-
-            anchors.fill: abletonLinkButton
-            acceptedButtons: Qt.LeftButton
-            preventStealing: true
-            hoverEnabled: false
-
-            onPressed: {
-                if (abletonLinkControl.initialized) {
-                    abletonLinkControl.value = abletonLinkControl.value > 0.0 ? 0.0 : 1.0;
-                }
-            }
-        }
-
-        Rectangle {
-            id: abletonLinkButton
-
-            anchors.left: parent.left
-            anchors.leftMargin: 2
-            anchors.top: parent.top
-            anchors.topMargin: 4
-            color: abletonLinkControl.value > 0.0
-                    ? LateNightTheme.toolbarButtonActiveBackgroundColor
-                    : LateNightTheme.toolbarButtonInactiveBackgroundColor
-            height: 26
-            width: 70
-
-            BorderImage {
-                anchors.fill: parent
-                border.bottom: 2
-                border.left: 2
-                border.right: 2
-                border.top: 2
-                horizontalTileMode: BorderImage.Stretch
-                source: abletonLinkControl.value > 0.0
-                        ? LateNightTheme.lateNightAsset("buttons", "btn_embedded_library_active.svg")
-                        : LateNightTheme.lateNightAsset("buttons", "btn_embedded_library.svg")
-                verticalTileMode: BorderImage.Stretch
-            }
-
-            Text {
-                anchors.fill: parent
-                color: abletonLinkControl.value > 0.0
-                        ? LateNightTheme.toolbarButtonActiveTextColor
-                        : LateNightTheme.toolbarButtonInactiveTextColor
-                elide: Text.ElideRight
-                font {
-                    family: "Open Sans"
-                    pixelSize: 11
-                    styleName: "Bold"
-                    weight: Font.Bold
-                }
-                horizontalAlignment: Text.AlignHCenter
-                renderType: Text.NativeRendering
-                text: "LINK" + (abletonLinkPeersControl.initialized
-                        ? " " + Math.max(0, Math.round(abletonLinkPeersControl.value))
-                        : "")
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-    }
-
-    // Dedicated BeatGrid test strip.
-    // It lives outside the toolbar's width-constrained RowLayout so the two
-    // controls remain visible even on narrow Android screens.
+    // Dedicated mobile control strip. The Android Link button is a direct
+    // third child of this Row so its position is deterministic: BITGRID 1,
+    // BITGRID 2, LINK. It does not depend on toolbar layout or ControlProxy
+    // initialization just to become visible.
     Rectangle {
         id: bitgridBar
 
@@ -204,7 +106,7 @@ ApplicationWindow {
         anchors.topMargin: 27
         color: LateNightTheme.toolbarRootBackgroundColor
         height: 34
-        width: 190
+        width: 283
         z: 10000
 
         Row {
@@ -263,6 +165,52 @@ ApplicationWindow {
                     anchors.fill: parent
                     cursorShape: Qt.ArrowCursor
                     onClicked: bitgrid2Action.trigger()
+                }
+            }
+
+            Rectangle {
+                id: abletonLinkButton
+
+                color: abletonLinkMouseArea.pressed
+                        ? LateNightTheme.toolbarButtonActiveBackgroundColor
+                        : LateNightTheme.toolbarButtonInactiveBackgroundColor
+                height: parent.height
+                radius: 2
+                width: 89
+
+                BorderImage {
+                    anchors.fill: parent
+                    border.bottom: 2
+                    border.left: 2
+                    border.right: 2
+                    border.top: 2
+                    horizontalTileMode: BorderImage.Stretch
+                    source: LateNightTheme.lateNightAsset("buttons", "btn_embedded_library.svg")
+                    verticalTileMode: BorderImage.Stretch
+                }
+
+                Text {
+                    anchors.fill: parent
+                    color: abletonLinkControl.value > 0.0
+                            ? LateNightTheme.toolbarButtonActiveTextColor
+                            : LateNightTheme.toolbarButtonInactiveTextColor
+                    font.family: "Open Sans"
+                    font.pixelSize: 12
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "LINK"
+                }
+
+                MouseArea {
+                    id: abletonLinkMouseArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    cursorShape: Qt.ArrowCursor
+                    preventStealing: true
+                    onPressed: {
+                        abletonLinkControl.value = abletonLinkControl.value > 0.0 ? 0.0 : 1.0;
+                    }
                 }
             }
         }
