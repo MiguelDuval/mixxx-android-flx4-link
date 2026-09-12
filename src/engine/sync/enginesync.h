@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <gtest/gtest_prod.h>
 
 #include "engine/sync/syncable.h"
@@ -39,10 +41,9 @@ class EngineSync : public SyncableListener {
     /// Enables a Link-specific sync mode in which Ableton Link is the explicit
     /// sync leader and synchronized decks remain followers. This leaves the
     /// normal Mixxx leader-selection algorithm untouched when disabled.
+    /// Request a Link Sync mode change. The actual state transition is applied
+    /// on the engine/audio callback thread to preserve EngineSync thread affinity.
     void setAbletonLinkSyncMode(bool enabled);
-    bool isAbletonLinkSyncMode() const {
-        return m_abletonLinkSyncMode;
-    }
 
     /// Syncables notify EngineSync directly about various events. EngineSync
     /// does not have a say in whether these succeed or not, they are simply
@@ -178,7 +179,11 @@ class EngineSync : public SyncableListener {
     AbletonLink* m_pAbletonLink;
     /// The current Syncable that is the leader.
     Syncable* m_pLeaderSyncable;
-    /// When true, Ableton Link is the explicit sync leader for all sync-enabled decks.
+    void applyAbletonLinkSyncMode(bool enabled);
+
+    /// Requested from UI/control threads; consumed on the engine callback thread.
+    std::atomic_bool m_abletonLinkSyncModeRequested;
+    /// Actual EngineSync state. Accessed on the engine callback thread.
     bool m_abletonLinkSyncMode;
     /// The list of all Syncables registered via addSyncableDeck.
     QList<Syncable*> m_syncables;
