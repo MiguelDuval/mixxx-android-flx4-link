@@ -21,7 +21,7 @@
         android:name="org.qtproject.qt.android.bindings.QtApplication"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="NRave"
         android:theme="@style/NraveTheme"
         android:requestLegacyExternalStorage="true"
@@ -42,9 +42,6 @@
             </intent-filter>
             <meta-data android:name="android.app.lib_name" android:value="mixxx" />
             <meta-data android:name="android.app.background_running" android:value="true" />
-            <meta-data android:name="android.app.splash_screen_drawable_landscape" android:resource="@drawable/nrave_splash_landscape" />
-            <meta-data android:name="android.app.splash_screen_drawable_portrait" android:resource="@drawable/nrave_splash_landscape" />
-            <meta-data android:name="android.app.splash_screen_drawable" android:resource="@drawable/nrave_splash_landscape" />
             <meta-data android:name="android.app.arguments" android:value="--new-ui --log-level info" />
         </activity>
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.qtprovider" android:exported="false" android:grantUriPermissions="true">
