@@ -4,6 +4,7 @@ name: Android APK
 # FLX4 + Ableton Link + Android USB support are built from main.
 # Mobile Pad FX panel + reliable effect-slot selection are now the active source.
 # Trigger a clean APK build from the reviewed PadFX/mobile UI repair.
+# Branding validation build: verify the NRave launcher icon and branded splash packaging.
 on:
   workflow_dispatch:
   push:
