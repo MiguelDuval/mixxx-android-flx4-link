@@ -2,7 +2,7 @@ import "." as Skin
 import Mixxx 1.0 as Mixxx
 import QtQuick 2.12
 import QtQuick.Controls
-import QtQuick.Window 2.12
+import QtQuick.Window
 import "Theme"
 
 ApplicationWindow {
@@ -54,6 +54,17 @@ ApplicationWindow {
                 applicationWindow: root
             }
         }
+    }
+
+    // This is the real Android QML runtime entrypoint. QmlApplication on
+    // Android copies res/qml into external storage and always loads this file.
+    Loader {
+        id: abletonLinkOverlay
+        anchors.fill: parent
+        active: root.isMobile && Mixxx.Core.ready && content.status === Loader.Ready
+        asynchronous: false
+        z: 100001
+        source: "AbletonLinkOverlay.qml"
     }
 
     // IMPORTANT: this Loader is deliberately created only after Mixxx.Core is
