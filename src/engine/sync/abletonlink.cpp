@@ -21,6 +21,7 @@ AbletonLink::AbletonLink(const QString& group, EngineSync* pEngineSync)
           m_absTimeWhenPrevOutputBufferReachesDac(0),
           m_pLink(std::make_unique<ableton::BasicLink<MixxxClockRef>>(120.0)),
           m_pLinkButton(std::make_unique<ControlPushButton>(ConfigKey(group, "sync_enabled"))),
+          m_pLinkSyncButton(std::make_unique<ControlPushButton>(ConfigKey(group, "sync_decks"))),
           m_pNumLinkPeers(std::make_unique<ControlObject>(ConfigKey(group, "num_peers"))) {
     m_pLinkButton->setButtonMode(mixxx::control::ButtonMode::Toggle);
     m_pLinkButton->setStates(2);
@@ -29,6 +30,13 @@ AbletonLink::AbletonLink(const QString& group, EngineSync* pEngineSync)
             &ControlObject::valueChanged,
             this,
             &AbletonLink::slotControlSyncEnabled);
+
+    m_pLinkSyncButton->setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_pLinkSyncButton->setStates(2);
+    connect(m_pLinkSyncButton.get(),
+            &ControlObject::valueChanged,
+            this,
+            &AbletonLink::slotControlLinkSyncEnabled);
 
     m_pNumLinkPeers->setReadOnly();
     m_pNumLinkPeers->forceSet(0);
@@ -59,7 +67,27 @@ AbletonLink::~AbletonLink() {
 }
 
 void AbletonLink::slotControlSyncEnabled(double controButtonlValue) {
-    m_pLink->enable(controButtonlValue > 0);
+    const bool enabled = controButtonlValue > 0;
+    m_pLink->enable(enabled);
+    if (!enabled && m_pEngineSync->isAbletonLinkSyncMode()) {
+        m_pLinkSyncButton->setAndConfirm(0.0);
+        m_pEngineSync->setAbletonLinkSyncMode(false);
+    }
+}
+
+void AbletonLink::slotControlLinkSyncEnabled(double value) {
+    const bool enabled = value > 0;
+    if (enabled && !m_pLink->isEnabled()) {
+        // Link Sync is subordinate to Link itself. Do not create a local
+        // sync mode that points at a disabled Link session.
+        m_pLinkSyncButton->setAndConfirm(0.0);
+        return;
+    }
+    m_pEngineSync->setAbletonLinkSyncMode(enabled);
+}
+
+bool AbletonLink::isEnabled() const {
+    return m_pLink->isEnabled();
 }
 
 void AbletonLink::setSyncMode(SyncMode syncMode) {
