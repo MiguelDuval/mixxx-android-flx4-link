@@ -110,9 +110,9 @@ void EngineSync::requestSyncMode(Syncable* pSyncable, SyncMode mode) {
 
     if (m_abletonLinkSyncMode && pSyncable != m_pAbletonLink) {
         if (mode == SyncMode::None) {
-            // Allow a deck to opt out individually, but never let a deck
-            // replace Ableton Link as the leader while Link Sync is active.
-            deactivateSync(pSyncable);
+            // Allow a deck to opt out individually, but never let normal
+            // deactivation logic clear the Link leader while Link Sync is active.
+            pSyncable->setSyncMode(SyncMode::None);
         } else {
             activateLeader(m_pAbletonLink, SyncMode::LeaderExplicit);
             activateFollower(pSyncable);
@@ -663,6 +663,12 @@ void EngineSync::notifyInstantaneousBpmChanged(Syncable* pSyncable, mixxx::Bpm b
 }
 
 void EngineSync::notifyBeatDistanceChanged(Syncable* pSyncable, double beatDistance) {
+    if (m_abletonLinkSyncMode && pSyncable != m_pAbletonLink) {
+        // In Link Sync mode Link owns the shared phase. Do not let the
+        // follower decks or InternalClock feed phase back into the session.
+        return;
+    }
+
     if (kLogger.traceEnabled()) {
         kLogger.trace() << "notifyBeatDistanceChanged"
                         << pSyncable->getGroup() << beatDistance;
