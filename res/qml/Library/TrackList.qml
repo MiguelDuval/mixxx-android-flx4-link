@@ -298,6 +298,12 @@ Rectangle {
                 });
             }
 
+            onCurrentChanged: (current, previous) => {
+                if (current && current.row >= 0) {
+                    view.positionViewAtRow(current.row, TableView.Contain);
+                }
+            }
+
             model: view.model
         }
 
