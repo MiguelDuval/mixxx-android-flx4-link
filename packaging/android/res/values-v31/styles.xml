@@ -4,6 +4,6 @@
     <style name="NraveTheme" parent="android:style/Theme.NoTitleBar.Fullscreen">
         <item name="android:windowBackground">@color/nrave_splash_background</item>
         <item name="android:windowSplashScreenBackground">@color/nrave_splash_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/nrave_icon</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
     </style>
 </resources>
