@@ -169,6 +169,7 @@ Rectangle {
 
         property int dynamicColumnCount: 0
         property int usedWidth: 0
+        property int pendingScrollRow: -1
 
         function loadSelectedTrack(group, play) {
             const urls = this.selectionModel.selectedTrackUrls();
@@ -184,18 +185,14 @@ Rectangle {
 
             Mixxx.PlayerManager.loadLocationUrlIntoNextAvailableDeck(urls[0], play);
         }
-        function ensureSelectedRowVisible(row) {
-            if (row < 0 || model == null) {
+        function requestSelectedRowVisible(row) {
+            if (model == null || row < 0 || row >= model.rowCount()) {
                 return;
             }
-
-            Qt.callLater(function() {
-                if (model == null || row < 0 || row >= model.rowCount()) {
-                    return;
-                }
-                view.forceLayout();
-                view.positionViewAtRow(row, TableView.Contain);
-            });
+            pendingScrollRow = row;
+            if (!selectionScrollTimer.running) {
+                selectionScrollTimer.start();
+            }
         }
         function updateColumnSize() {
             const oldUsedWidth = usedWidth;
@@ -215,6 +212,22 @@ Rectangle {
                 }
             }
             return oldDynamicColumnCount != dynamicColumnCount || oldUsedWidth != usedWidth;
+        }
+
+        Timer {
+            id: selectionScrollTimer
+
+            interval: 0
+            repeat: false
+
+            onTriggered: {
+                const row = view.pendingScrollRow;
+                view.pendingScrollRow = -1;
+                if (view.model == null || row < 0 || row >= view.model.rowCount()) {
+                    return;
+                }
+                view.positionViewAtRow(row, TableView.Contain);
+            }
         }
 
         anchors.bottom: parent.bottom
@@ -304,18 +317,12 @@ Rectangle {
                 }
                 const newRow = Mixxx.MathUtils.positiveModulo(row, rowCount);
                 this.select(this.model.index(newRow, 0), ItemSelectionModel.Rows | ItemSelectionModel.Select | ItemSelectionModel.Clear | ItemSelectionModel.Current);
-                view.ensureSelectedRowVisible(newRow);
+                view.requestSelectedRowVisible(newRow);
             }
             function selectedTrackUrls() {
                 return this.selectedIndexes.map(index => {
                     return this.model.getUrl(index.row);
                 });
-            }
-
-            onCurrentChanged: (current, previous) => {
-                if (current && current.row >= 0) {
-                    view.ensureSelectedRowVisible(current.row);
-                }
             }
 
             model: view.model
