@@ -607,6 +607,13 @@ void EngineSync::notifyRateChanged(Syncable* pSyncable, mixxx::Bpm bpm) {
         kLogger.trace() << "notifyRateChanged" << pSyncable->getGroup() << bpm;
     }
 
+    // In Link Sync mode the physical decks are followers. Their rate changes
+    // must not feed back into the Link session and turn a local pitch move
+    // into a global Link tempo change. Link remains the sole tempo authority.
+    if (m_abletonLinkSyncMode && pSyncable != m_pAbletonLink) {
+        return;
+    }
+
     updateLeaderBpm(pSyncable, bpm);
 }
 
