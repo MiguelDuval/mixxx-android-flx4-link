@@ -98,10 +98,12 @@ class AbletonLink : public QObject, public Syncable {
     void updateInstantaneousBpm(mixxx::Bpm bpm) override;
 
     void onCallbackStart(std::chrono::microseconds absTimeWhenPrevOutputBufferReachesDac);
+    bool isEnabled() const;
     void onCallbackEnd(int sampleRate, size_t bufferSize);
 
   private:
     void slotControlSyncEnabled(double value);
+    void slotControlLinkSyncEnabled(double value);
 
     std::chrono::microseconds getHostTime() const;
     std::chrono::microseconds getHostTimeAtSpeaker(std::chrono::microseconds hostTime) const;
@@ -126,5 +128,6 @@ class AbletonLink : public QObject, public Syncable {
 
     std::unique_ptr<ableton::BasicLink<MixxxClockRef>> m_pLink;
     std::unique_ptr<ControlPushButton> m_pLinkButton;
+    std::unique_ptr<ControlPushButton> m_pLinkSyncButton;
     std::unique_ptr<ControlObject> m_pNumLinkPeers;
 };
