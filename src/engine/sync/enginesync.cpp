@@ -20,7 +20,8 @@ EngineSync::EngineSync(UserSettingsPointer pConfig)
         : m_pConfig(pConfig),
           m_pInternalClock(new InternalClock(kInternalClockGroup, this)),
           m_pAbletonLink(new AbletonLink(kAbletonLinkGroup, this)),
-          m_pLeaderSyncable(nullptr) {
+          m_pLeaderSyncable(nullptr),
+          m_abletonLinkSyncMode(false) {
     qRegisterMetaType<SyncMode>("SyncMode");
     m_pInternalClock->updateLeaderBpm(kDefaultBpm);
 }
@@ -34,12 +35,85 @@ EngineSync::~EngineSync() {
     delete m_pInternalClock;
 }
 
+void EngineSync::setAbletonLinkSyncMode(bool enabled) {
+    if (m_abletonLinkSyncMode == enabled) {
+        if (enabled) {
+            // Re-assert the invariant in case a deck requested a mode change
+            // through another control path.
+            activateLeader(m_pAbletonLink, SyncMode::LeaderExplicit);
+            for (Syncable* pSyncable : std::as_const(m_syncables)) {
+                if (pSyncable->getChannel() &&
+                        pSyncable->getChannel()->isPrimaryDeck()) {
+                    activateFollower(pSyncable);
+                }
+            }
+            reinitLeaderParams(m_pAbletonLink);
+        }
+        return;
+    }
+
+    m_abletonLinkSyncMode = enabled;
+
+    if (enabled) {
+        // Link is the single authoritative source for tempo/phase. Physical
+        // decks are followers; this deliberately bypasses pickLeader() so a
+        // playing deck cannot become the local leader.
+        activateLeader(m_pAbletonLink, SyncMode::LeaderExplicit);
+
+        for (Syncable* pSyncable : std::as_const(m_syncables)) {
+            if (pSyncable->getChannel() &&
+                    pSyncable->getChannel()->isPrimaryDeck()) {
+                activateFollower(pSyncable);
+            }
+        }
+
+        reinitLeaderParams(m_pAbletonLink);
+        for (Syncable* pSyncable : std::as_const(m_syncables)) {
+            if (pSyncable->getChannel() &&
+                    pSyncable->getChannel()->isPrimaryDeck() &&
+                    pSyncable->isSynchronized()) {
+                pSyncable->updateInstantaneousBpm(m_pAbletonLink->getBpm());
+                pSyncable->requestSync();
+            }
+        }
+        return;
+    }
+
+    // Restore normal Mixxx leader selection. Do not leave the Link object as
+    // a hidden leader once Link Sync has been switched off.
+    if (m_pLeaderSyncable == m_pAbletonLink) {
+        m_pLeaderSyncable = nullptr;
+        m_pAbletonLink->setSyncMode(SyncMode::None);
+
+        Syncable* newLeader = pickLeader(nullptr, false);
+        if (newLeader) {
+            activateLeader(newLeader, SyncMode::LeaderSoft);
+            reinitLeaderParams(newLeader);
+        }
+    }
+}
+
 void EngineSync::requestSyncMode(Syncable* pSyncable, SyncMode mode) {
     if (kLogger.traceEnabled()) {
         kLogger.trace() << "requestSyncMode" << pSyncable->getGroup() << mode;
     }
     // Based on the call hierarchy I don't think this is possible. (Famous last words.)
     VERIFY_OR_DEBUG_ASSERT(pSyncable) {
+        return;
+    }
+
+    if (m_abletonLinkSyncMode && pSyncable != m_pAbletonLink) {
+        if (mode == SyncMode::None) {
+            // Allow a deck to opt out individually, but never let a deck
+            // replace Ableton Link as the leader while Link Sync is active.
+            deactivateSync(pSyncable);
+        } else {
+            activateLeader(m_pAbletonLink, SyncMode::LeaderExplicit);
+            activateFollower(pSyncable);
+            reinitLeaderParams(m_pAbletonLink);
+            pSyncable->updateInstantaneousBpm(m_pAbletonLink->getBpm());
+            pSyncable->requestSync();
+        }
         return;
     }
 
@@ -405,6 +479,15 @@ Syncable* EngineSync::findBpmMatchTarget(Syncable* requester) {
 }
 
 void EngineSync::notifyPlayingAudible(Syncable* pSyncable, bool playingAudible) {
+    if (m_abletonLinkSyncMode) {
+        Q_UNUSED(playingAudible);
+        if (pSyncable != m_pAbletonLink && pSyncable->isSynchronized()) {
+            activateLeader(m_pAbletonLink, SyncMode::LeaderExplicit);
+            reinitLeaderParams(m_pAbletonLink);
+        }
+        return;
+    }
+
     if (kLogger.traceEnabled()) {
         kLogger.trace() << "notifyPlayingAudible"
                         << pSyncable->getGroup() << playingAudible;
