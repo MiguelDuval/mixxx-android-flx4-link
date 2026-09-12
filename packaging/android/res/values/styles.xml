@@ -2,6 +2,6 @@
 <resources>
     <color name="nrave_splash_background">#07090E</color>
     <style name="NraveTheme" parent="android:style/Theme.NoTitleBar.Fullscreen">
-        <item name="android:windowBackground">@color/nrave_splash_background</item>
+        <item name="android:windowBackground">@drawable/nrave_splash_landscape</item>
     </style>
 </resources>
